@@ -32,15 +32,36 @@ const navItems = [
     // subItems: [{ name: "Ecommerce", path: "/", pro: false }],
     path: "/",
   },
-  // {
-  //   icon: <CalenderIcon />,
-  //   name: "Calendar",
-  //   path: "/calendar",
-  // },
+ 
   {
     icon: <UserCircleIcon />,
     name: "User Profile",
     path: "/profile",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Batch Details",
+    path: "/batch-details-list",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Messages",
+    path: "/message-list",
+  },
+
+  {
+    name: "Course",
+    icon: <TableIcon />,
+    subItems: [{ name: "Course list", path: "/course-list", pro: false },
+      { name: "Module", path: "/module-list", pro: false }
+    ],
+
+  },
+
+  {
+    icon: <UserCircleIcon />,
+    name: "Study Material Details",
+    path: "/study-material-list",
   },
   {
     name: "Forms",
@@ -51,6 +72,8 @@ const navItems = [
     name: "Tables",
     icon: <TableIcon />,
     subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    // subItems: [{ name: "Basic Tables", path: "/batch-details", pro: false }],
+
   },
   {
     name: "Pages",

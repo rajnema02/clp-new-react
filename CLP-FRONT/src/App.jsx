@@ -5,13 +5,19 @@ import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 
 
-import Calendar from "./pages/Calendar";
+// import Calendar from "./pages/Calendar"; 
 import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import BatchData from "./pages/Batch/BatchData";
+import Message from "./pages/message/MessageList";
+import Modules from "./pages/course/ModulesList";
+import CourseLists from "./pages/course/CourseLists";
+import ModulesList from "./pages/course/ModulesList";
+import MessageList from "./pages/message/MessageList";
 
 export default function App() {
   return (
@@ -19,13 +25,25 @@ export default function App() {
       <Router>
         <ScrollToTop />
         <Routes>
-          {/* Dashboard Layout */}
+         
           <Route element={<AppLayout />}>
             <Route index path="/" element={<Home />} />
+            <Route index path="/batch-details-list" element={<BatchData/>} />
+            <Route index path="/message-list" element={<MessageList/>} />
 
-            {/* Others Page */}
+
+
+            <Route path="/course-list" element={<CourseLists />} />
+            <Route path="/module-list" element={<ModulesList />} />
+
+
+            <Route path="/study-material-list" element={<ModulesList />} />
+
+            
+
+           
             <Route path="/profile" element={<UserProfiles />} />
-            <Route path="/calendar" element={<Calendar />} />
+           
             <Route path="/blank" element={<Blank />} />
 
             {/* Forms */}
@@ -34,7 +52,7 @@ export default function App() {
             {/* Tables */}
             <Route path="/basic-tables" element={<BasicTables />} />
 
-            {/* Ui Elements */}
+          
            
 
             {/* Charts */}
@@ -45,6 +63,7 @@ export default function App() {
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
