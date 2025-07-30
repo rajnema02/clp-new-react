@@ -5,54 +5,50 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-} from "../../components/ui/table/index";
-import Button from "../../components/ui/button/Button";
-import ComponentCard from "../../components/common/ComponentCard";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import PageMeta from "../../components/common/PageMeta";
+} from "../ui/table/index";
+import Button from "../ui/button/Button";
+import PageBreadcrumb from "../common/PageBreadCrumb";
+import ComponentCard from "../common/ComponentCard";
+import PageMeta from "../common/PageMeta";
 
-// Dummy data (you can replace this with API data later)
+// Dummy data for exams
 const examData = [
   {
     id: 1,
-    examName: "Midterm Exam",
-    examCode: "EXM-101",
-    courseType: "Online",
-    batchName: "Batch A",
-    examDate: "2025-08-15",
+    courseName: "ReactJS Mastery",
+    examDate: "2025-08-10",
     examTime: "10:00 AM",
-    examStatus: "Completed",
+    examStatus: "Scheduled",
+  },
+  {
+    id: 2,
+    courseName: "Node.js Fundamentals",
+    examDate: "2025-08-15",
+    examTime: "2:00 PM",
+    examStatus: "Scheduled",
   },
 ];
 
-const ExamList = () => {
+const StudentExamList = () => {
   return (
     <>
       <PageMeta
-        title="Exam List | TailAdmin"
-        description="This is the exam list table page in TailAdmin"
+        title="Student Exam List | TailAdmin"
+        description="This is the student exam list view for exams"
       />
 
       <PageBreadcrumb pageTitle="Exam List" />
 
       <div className="space-y-6">
-        <ComponentCard title="Exam List">
+        <ComponentCard title="Your Exams">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
+                {/* Table Header */}
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Exam Name
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Exam Code
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Type
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Batch Name
+                      Course Name
                     </TableCell>
                     <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
                       Exam Date
@@ -69,20 +65,12 @@ const ExamList = () => {
                   </TableRow>
                 </TableHeader>
 
+                {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {examData.map((exam) => (
                     <TableRow key={exam.id}>
                       <TableCell className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90">
-                        {exam.examName}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {exam.examCode}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {exam.courseType}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {exam.batchName}
+                        {exam.courseName}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                         {exam.examDate}
@@ -95,7 +83,7 @@ const ExamList = () => {
                       </TableCell>
                       <TableCell className="px-5 py-4">
                         <Button size="sm" variant="default">
-                          Show Result
+                          Start Exam
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -110,4 +98,4 @@ const ExamList = () => {
   );
 };
 
-export default ExamList;
+export default StudentExamList;

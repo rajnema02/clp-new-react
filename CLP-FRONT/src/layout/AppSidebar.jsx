@@ -23,13 +23,12 @@ const navItems = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    // subItems: [{ name: "Ecommerce", path: "/", pro: false }],
     path: "/",
   },
  
   {
     icon: <UserCircleIcon />,
-    name: "User Profile",
+    name: "Admin Profile",
     path: "/profile",
   },
   {
@@ -76,27 +75,80 @@ const navItems = [
     path: "/user-management",
   },
 
-  
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
-    name: "Tables",
-    icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-    // subItems: [{ name: "Basic Tables", path: "/batch-details", pro: false }],
 
-  },
+  //User-Pages
+
   {
-    name: "Pages",
-    icon: <PageIcon />,
+    icon: <UserCircleIcon />,
+    name: "Student Registration",
+    path: "/student-registration",
+  },
+
+   {
+    icon: <UserCircleIcon />,
+    name: "Student About Program",
+    path: "/student-about-program",
+  },
+
+
+   {
+    icon: <UserCircleIcon />,
+    name: "Student Messages",
+    path: "/student-message",
+  },
+
+
+   {
+    icon: <UserCircleIcon />,
+    name: "Student Video Library",
+    path: "/student-video-library",
+  },
+
+  {
+    name: "Student Exam",
+    icon: <TableIcon />,
     subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
+      { name: "Student Exam List", path: "/student-exam-list", pro: false },
+      { name: "Student Demo Exam", path: "/student-demo-exam", pro: false },
+      
     ],
   },
+
+
+  {
+    name: "Student-Profile",
+    icon: <TableIcon />,
+    subItems: [
+      { name: "Student Form", path: "/student-profile-form", pro: false },
+      { name: "Student Certificate", path: "/student-certificate", pro: false },
+      
+    ],
+  }
+
+
+
+
+  
+  // {
+  //   name: "Forms",
+  //   icon: <ListIcon />,
+  //   subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+  // },
+  // {
+  //   name: "Tables",
+  //   icon: <TableIcon />,
+  //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+  //   // subItems: [{ name: "Basic Tables", path: "/batch-details", pro: false }],
+
+  // },
+  // {
+  //   name: "Pages",
+  //   icon: <PageIcon />,
+  //   subItems: [
+  //     { name: "Blank Page", path: "/blank", pro: false },
+  //     { name: "404 Error", path: "/error-404", pro: false },
+  //   ],
+  // },
 ];
 
 const othersItems = [

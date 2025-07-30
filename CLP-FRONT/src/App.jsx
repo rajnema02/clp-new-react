@@ -23,6 +23,15 @@ import BulkUploadsList from "./pages/Exam/BulkUploadsList";
 import QuestionBanksList from "./pages/Exam/QuestionBanksList";
 import ExamsList from "./pages/Exam/ExamsList";
 import UsersManagementList from "./pages/userManagement/UsersManagementList";
+import StudentProfileForm from "./components/studentProfile/StudentProfileForm";
+import StudentsCertificate from "./student-pages/studentsProfile/StudentsCertificate";
+import StudentsAboutProgram from "./student-pages/studentAboutProgram/StudentsAboutProgram";
+import StudentDemoExam from "./components/studentExam/StudentDemoExam";
+import StudentsDemoExam from "./student-pages/studentExam/StudentsDemoExam";
+import StudentsExamList from "./student-pages/studentExam/StudentsExamList";
+import StudentsRegistrationList from "./student-pages/studentRegistration/StudentsRegistrationList";
+import StudentsMessages from "./student-pages/studentMessages/StudentsMessages";
+import StudentsVideoLibrary from "./student-pages/studentsVideoLibrary/StudentsVideoLibrary";
 
 export default function App() {
   return (
@@ -51,7 +60,21 @@ export default function App() {
             <Route path="/question-bank-list" element={<QuestionBanksList />} />
             <Route path="/bulk-upload-list" element={<BulkUploadsList />} />
             <Route path="/schedule-exam-list" element={<ScheduleExamsList />} />
-            
+
+
+
+            <Route path="/student-profile-form" element={<studetsprofileform/>} />
+            <Route path="/student-certificate" element={<StudentsCertificate />} />
+
+            <Route path="/student-about-program" element={<StudentsAboutProgram/>} />
+            <Route path="/student-demo-exam" element={<StudentsDemoExam />} />
+
+            <Route path="/student-exam-list" element={<StudentsExamList/>} />
+            <Route path="/student-registration" element={<StudentsRegistrationList/>} />
+
+            <Route path="/student-message" element={<StudentsMessages/>} />
+            <Route path="/student-video-library" element={<StudentsVideoLibrary/>} />
+          
 
             
 
