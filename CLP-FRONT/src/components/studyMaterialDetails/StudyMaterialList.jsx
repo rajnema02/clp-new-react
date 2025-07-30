@@ -4,8 +4,8 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-} from "../../ui/table";
-import Button from "../../ui/button/Button";
+} from "../../components/ui/table/index";
+import Button from "../../components/ui/button/Button";
 
 const StudyMaterialList = () => {
   return (

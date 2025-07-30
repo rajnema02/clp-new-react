@@ -1,9 +1,10 @@
 import React from 'react'
+import BulkUploadList from '../../components/Exam/BulkUploadList'
 
 const BulkUploadsList = () => {
   return (
     <div>
-      <BulkUploadsList/>
+      <BulkUploadList/>
     </div>
   )
 }

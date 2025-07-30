@@ -18,6 +18,11 @@ import Modules from "./pages/course/ModulesList";
 import CourseLists from "./pages/course/CourseLists";
 import ModulesList from "./pages/course/ModulesList";
 import MessageList from "./pages/message/MessageList";
+import ScheduleExamsList from "./pages/Exam/ScheduleExamsList";
+import BulkUploadsList from "./pages/Exam/BulkUploadsList";
+import QuestionBanksList from "./pages/Exam/QuestionBanksList";
+import ExamsList from "./pages/Exam/ExamsList";
+import UsersManagementList from "./pages/userManagement/UsersManagementList";
 
 export default function App() {
   return (
@@ -38,6 +43,15 @@ export default function App() {
 
 
             <Route path="/study-material-list" element={<ModulesList />} />
+
+            <Route path="/user-management" element={<UsersManagementList />} />
+
+
+            <Route path="/exam-list" element={<ExamsList />} />
+            <Route path="/question-bank-list" element={<QuestionBanksList />} />
+            <Route path="/bulk-upload-list" element={<BulkUploadsList />} />
+            <Route path="/schedule-exam-list" element={<ScheduleExamsList />} />
+            
 
             
 

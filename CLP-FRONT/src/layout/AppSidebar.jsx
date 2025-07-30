@@ -18,12 +18,6 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
 
-// type NavItem = {
-//   name: string;
-//   icon: React.ReactNode;
-//   path?: string;
-//   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-// };
 
 const navItems = [
   {
@@ -63,6 +57,26 @@ const navItems = [
     name: "Study Material Details",
     path: "/study-material-list",
   },
+
+
+  {
+    name: "Exam",
+    icon: <TableIcon />,
+    subItems: [{ name: "Exam list", path: "/exam-list", pro: false },
+      { name: "Question Bank", path: "/question-bank-list", pro: false },
+      { name: "Bulk Uplaod", path: "/bulk-upload-list", pro: false },
+      { name: "Schedule Exam", path: "/schedule-exam-list", pro: false }
+    ],
+
+  },
+
+  {
+    icon: <UserCircleIcon />,
+    name: "User Management",
+    path: "/user-management",
+  },
+
+  
   {
     name: "Forms",
     icon: <ListIcon />,
