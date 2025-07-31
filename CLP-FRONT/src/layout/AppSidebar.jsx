@@ -391,23 +391,24 @@ const AppSidebar= () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link to="/">
+        <Link to="/" style={{display:"flex", gap:"12px"}}>
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src="./images/logo/logo-new.png"
                 alt="Logo"
-                width={150}
-                height={40}
+                width={25}
+                height={25}
               />
-              <img
+              <h1>CLP-Exam Portal </h1>
+              {/* <img
                 className="hidden dark:block"
                 src="/images/logo/logo-dark.svg"
                 alt="Logo"
                 width={150}
                 height={40}
-              />
+              /> */}
             </>
           ) : (
             <img

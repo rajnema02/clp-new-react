@@ -1,5 +1,5 @@
 
-const userModel = require("../Models/User.model");
+const userModel = require("../Models/Auth.model");
 const messageModel = require("../Models/Message.model");
 const createError = require("http-errors");
 const mongoose = require("mongoose");

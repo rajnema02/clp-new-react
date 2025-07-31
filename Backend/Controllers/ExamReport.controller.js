@@ -184,7 +184,7 @@ module.exports = {
   getFinalExamReport: async (req, res, next) => {
     const Model = require("../Models/ExamReport.model");
     const Exam = require("../Models/Exam.model");
-    const User = require("../Models/User.model");
+    const User = require("../Models/Auth.model");
 
     try {
       const { examId } = req.query;

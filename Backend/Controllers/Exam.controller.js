@@ -10,7 +10,7 @@ const Question = require("../Models/Question.model");
 const _ = require("lodash");
 const AnswerSheetModel = require("../Models/AnswerSheet.model");
 const AnswerSheetController = require("../Controllers/AnswerSheet.controller");
-const User = require("../Models/User.model");
+const User = require("../Models/Auth.model");
 const Batch = require("../Models/Batch.model");
 const {
   sms1stAttempt,

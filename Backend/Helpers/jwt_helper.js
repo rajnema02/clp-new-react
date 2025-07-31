@@ -1,6 +1,6 @@
 const JWT = require('jsonwebtoken')
 const createError = require('http-errors')
-const User = require('../Models/User.model')
+const User = require('../Models/Auth.model')
 const mongoose = require('mongoose')
 
 // const permissionUrls = [];

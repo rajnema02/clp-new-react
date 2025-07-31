@@ -1,5 +1,5 @@
 const Model = require('../Models/AuditQueryQuestion.model')
-const UserModel = require('../Models/User.model')
+const UserModel = require('../Models/Auth.model')
 const createError = require('http-errors')
 const mongoose = require('mongoose')
 const ModelName = 'Page'

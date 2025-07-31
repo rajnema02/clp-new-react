@@ -1,4 +1,4 @@
-const Model = require('../Models/User.model')
+const Model = require('../Models/Auth.model')
 const mongoose = require('mongoose')
 // const { registerSchema, registerUserSchema, registerVendorSchema, loginSchema, loginUserSchema, verifyOtpSchema, onboardInfluencerSchema, createUserSchema } = require('../Validations/auth_validation_schema')
 const createError = require('http-errors')

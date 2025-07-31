@@ -34,7 +34,12 @@ import StudentsMessages from "./student-pages/studentMessages/StudentsMessages";
 import StudentsVideoLibrary from "./student-pages/studentsVideoLibrary/StudentsVideoLibrary";
 
 import LogIn from "./pages/AuthPages/LogIn";
-import SignIn from "./pages/AuthPages/SignIn";
+
+
+import AdminLogin from "./pages/AuthPages/AdminLogin";
+
+import Signup from "./pages/AuthPages/Signup";
+import AdminSignup from "./pages/AuthPages/AdminSignup";
 
 export default function App() {
   return (
@@ -100,7 +105,11 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/login" element={<LogIn />} />
-          <Route path="/signin" element={<SignIn/>} />
+          <Route path="/signup" element={<Signup/>} />
+
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin-signup" element={<AdminSignup/>} />
+
 
 
           {/* Fallback Route */}

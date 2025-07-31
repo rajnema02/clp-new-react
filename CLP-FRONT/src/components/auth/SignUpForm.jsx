@@ -5,7 +5,7 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 
-export default function SignInForm() {
+export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   return (
@@ -84,11 +84,10 @@ export default function SignInForm() {
             </div>
             <form>
               <div className="space-y-5">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* <!-- First Name --> */}
+                
                   <div className="sm:col-span-1">
                     <Label>
-                      First Name<span className="text-error-500">*</span>
+                      Full Name<span className="text-error-500">*</span>
                     </Label>
                     <Input
                       type="text"
@@ -98,18 +97,8 @@ export default function SignInForm() {
                     />
                   </div>
                   {/* <!-- Last Name --> */}
-                  <div className="sm:col-span-1">
-                    <Label>
-                      Last Name<span className="text-error-500">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      id="lname"
-                      name="lname"
-                      placeholder="Enter your last name"
-                    />
-                  </div>
-                </div>
+                  
+                
                 {/* <!-- Email --> */}
                 <div>
                   <Label>
@@ -120,6 +109,17 @@ export default function SignInForm() {
                     id="email"
                     name="email"
                     placeholder="Enter your email"
+                  />
+                </div>
+                <div>
+                  <Label>
+                    Mobile Number<span className="text-error-500">*</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    id="mobile"
+                    name="mobile"
+                    placeholder="Enter your mobile"
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -175,7 +175,7 @@ export default function SignInForm() {
               <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                 Already have an account? {""}
                 <Link
-                  to="/signin"
+                  to="/login"
                   className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                 >
                   Log In

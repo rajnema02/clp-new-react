@@ -1,5 +1,5 @@
 const Model = require("../Models/Batch.model");
-const StudentModel = require("../Models/User.model");
+const StudentModel = require("../Models/Auth.model");
 const createError = require("http-errors");
 const mongoose = require("mongoose");
 const ModelName = "Batch";

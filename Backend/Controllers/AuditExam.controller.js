@@ -12,7 +12,7 @@ const AuditQuestionModel = require("../Models/AuditQuestion.model");
 const _ = require("lodash");
 const AuditAnswerSheetModel = require("../Models/AuditAnswerSheet.model");
 const AuditAttendanceSheetModel = require("../Models/AuditAttendanceSheet.model");
-const User = require("../Models/User.model");
+const User = require("../Models/Auth.model");
 const Batch = require("../Models/Batch.model");
 const {
   sms1stAttempt,

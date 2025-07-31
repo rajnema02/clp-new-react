@@ -1,4 +1,4 @@
-const Model = require("../Models/User.model");
+const Model = require("../Models/Auth.model");
 const preUserModel = require("../Models/preUser.model");
 const BatchModel = require("../Models/Batch.model");
 const createError = require("http-errors");

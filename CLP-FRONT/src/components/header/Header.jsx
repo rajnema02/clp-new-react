@@ -78,17 +78,21 @@ const Header = ({ onClick, onToggle }) => {
             </svg>
           </button>
 
-          <Link to="/" className="lg:hidden">
+          <Link to="/" className="lg:hidden" style={{display:"flex", gap:"12px"}}>
             <img
-              className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
-            />
-            <img
+                className="dark:hidden"
+                src="./images/logo/logo-new.png"
+                alt="Logo"
+                width={25}
+                height={25}
+              />
+              <h1>CLP-Exam Porta</h1>
+            {/* <img
               className="hidden dark:block"
               src="./images/logo/logo-dark.svg"
               alt="Logo"
-            />
+            /> */}
+            
           </Link>
 
           <button

@@ -83,17 +83,16 @@ const AppHeader = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="lg:hidden">
+          <Link to="/"  style={{display:"flex", gap:"12px"}} className="lg:hidden">
             <img
-              className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
-            />
-            <img
-              className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
-              alt="Logo"
-            />
+                className="dark:hidden lg:hidden"
+                src="./images/logo/logo-new.png"
+                alt="Logo"
+                width={25}
+                height={25}
+              />
+              <h1 className="lg:hidden">CLP-Exam Portal </h1>
+            
           </Link>
 
           <button
