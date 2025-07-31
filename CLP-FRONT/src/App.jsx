@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
-import SignIn from "./pages/AuthPages/SignIn";
-import SignUp from "./pages/AuthPages/SignUp";
+
+
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 
@@ -32,6 +32,9 @@ import StudentsExamList from "./student-pages/studentExam/StudentsExamList";
 import StudentsRegistrationList from "./student-pages/studentRegistration/StudentsRegistrationList";
 import StudentsMessages from "./student-pages/studentMessages/StudentsMessages";
 import StudentsVideoLibrary from "./student-pages/studentsVideoLibrary/StudentsVideoLibrary";
+
+import LogIn from "./pages/AuthPages/LogIn";
+import SignIn from "./pages/AuthPages/SignIn";
 
 export default function App() {
   return (
@@ -92,14 +95,12 @@ export default function App() {
           
            
 
-            {/* Charts */}
-            {/* <Route path="/line-chart" element={<LineChart />} />
-            <Route path="/bar-chart" element={<BarChart />} /> */}
+          
           </Route>
 
           {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
+          <Route path="/login" element={<LogIn />} />
+          <Route path="/signin" element={<SignIn/>} />
 
 
           {/* Fallback Route */}
