@@ -1,25 +1,30 @@
-const mongoose = require('mongoose')
-const debug = require('debug')(`${process.env.DB_Name || 'mongo'}:db`)
 require('dotenv').config()
+const mongoose = require('mongoose')
+const debug = require('debug')(process.env.DEBUG + 'mongodb')
 
-const DB_NAME = process.env.DB_Name || 'cl-new-react'
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/'
+const FULL_URI = `${process.env.MONGO_URL}${process.env.DB_NAME}`
 
-const FULL_DB_URL = `${MONGO_URL}${DB_NAME}`
+mongoose.connect(FULL_URI)
+  .then(() => debug(`✅ MongoDB connected to ${FULL_URI}`))
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err.message)
+    process.exit(1)
+  })
 
-// ✅ No need for deprecated options like useNewUrlParser, useUnifiedTopology
-mongoose.connect(FULL_DB_URL)
-  .then(() => debug(`✅ MongoDB connected at ${FULL_DB_URL}`))
-  .catch((err) => console.error('❌ MongoDB connection error:', err))
+mongoose.connection.on('connected', () => {
+  debug(`Mongoose connected to DB: ${process.env.DB_NAME}`)
+})
 
-const db = mongoose.connection
+mongoose.connection.on('error', (err) => {
+  debug('Mongoose error:', err.message)
+})
 
-db.on('disconnected', () => {
-  debug('⚠️ MongoDB disconnected')
+mongoose.connection.on('disconnected', () => {
+  debug('Mongoose connection is disconnected.')
 })
 
 process.on('SIGINT', async () => {
   await mongoose.connection.close()
-  debug('🔌 MongoDB connection closed due to app termination')
+  debug('MongoDB connection closed due to app termination')
   process.exit(0)
 })
