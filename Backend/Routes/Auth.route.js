@@ -4,7 +4,9 @@ const { verifyAccessToken } = require('../Helpers/jwt_helper')
 
 router.post('/authlogin', Controller.adminLogin)
 
-router.post('/userlogin', Controller.userLogin)
+router.post('/authsignup', Controller.adminSignup)
+
+// router.post('/userlogin', Controller.userLogin)
 
 router.post('/reset-password',verifyAccessToken, Controller.updatePassword)
 

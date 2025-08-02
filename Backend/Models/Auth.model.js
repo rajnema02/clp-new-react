@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 
-const UserSchema = new mongoose.Schema({
+const AuthSchema = new mongoose.Schema({
     full_name: {
         type: String,
         trim: true
@@ -270,7 +270,7 @@ const UserSchema = new mongoose.Schema({
     }
 })
 
-UserSchema.pre('save', async function (next) {
+AuthSchema.pre('save', async function (next) {
     try {
         if (this.isNew) {
             if (this.password) {
@@ -285,7 +285,7 @@ UserSchema.pre('save', async function (next) {
     }
 })
 
-UserSchema.pre('updateOne', async function (next) {
+AuthSchema.pre('updateOne', async function (next) {
     try {
         let query = this
         let update = query.getUpdate()
@@ -305,7 +305,7 @@ UserSchema.pre('updateOne', async function (next) {
     }
 })
 
-UserSchema.methods.isValidPassword = async function (password) {
+AuthSchema.methods.isValidPassword = async function (password) {
     try {
         return await bcrypt.compare(password, this.password)
         // return password == this.password
@@ -314,6 +314,6 @@ UserSchema.methods.isValidPassword = async function (password) {
     }
 }
 
-const User = mongoose.model('user', UserSchema);
+const Auth = mongoose.model('auth', AuthSchema);
 
-module.exports = User
+module.exports = Auth

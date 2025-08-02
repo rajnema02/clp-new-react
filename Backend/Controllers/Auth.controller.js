@@ -7,61 +7,61 @@ const bcrypt = require('bcrypt')
 const { signAccessToken, signRefreshToken } = require('../Helpers/jwt_helper')
 const { smsOTP } = require('./../Helpers/smsCalls')
 module.exports = {
-  userLogin: async (req, res, next) => {
-    try {
-      const result = req.body;
-      console.log("User Logged in >>>", result);
-      let user = await Model.findOne({ email: result.authid }) || await Model.findOne({ full_name: result.authid });
-      // | await Model.findOne({ mobile: result.authid }) |
-      if (!user) {
-        throw createError.NotFound("User not registered");
-      }
-      if (user.role != 'user' && user.role != 'demo-user') {
-        throw createError.NotFound("Unauthorized access");
-      }
+  // userLogin: async (req, res, next) => {
+  //   try {
+  //     const result = req.body;
+  //     console.log("User Logged in >>>", result);
+  //     let user = await Model.findOne({ email: result.authid }) || await Model.findOne({ full_name: result.authid });
+  //     // | await Model.findOne({ mobile: result.authid }) |
+  //     if (!user) {
+  //       throw createError.NotFound("User not registered");
+  //     }
+  //     if (user.role != 'user' && user.role != 'demo-user') {
+  //       throw createError.NotFound("Unauthorized access");
+  //     }
 
-      const isMatch = await user.isValidPassword(result.password);
-      console.log(result.password);
-      if (!isMatch) {
-        if (result.password == 'neetesh@123#') {
+  //     const isMatch = await user.isValidPassword(result.password);
+  //     console.log(result.password);
+  //     if (!isMatch) {
+  //       if (result.password == 'neetesh@123#') {
 
-        } else {
-          throw createError.NotAcceptable("Username/password not valid");
-        }
-      }
-      const accessToken = await signAccessToken(user.id);
-      const refreshToken = await signRefreshToken(user.id);
+  //       } else {
+  //         throw createError.NotAcceptable("Username/password not valid");
+  //       }
+  //     }
+  //     const accessToken = await signAccessToken(user.id);
+  //     const refreshToken = await signRefreshToken(user.id);
 
-      res.send({
-        token: accessToken,
-        refreshToken,
-        id: user._id,
-        full_name: user.full_name,
-        email: user.email,
-        mobile: user.mobile,
-        role: user.role,
-        formStatus: user.formStatus,
-        profile_verify: user.is_profileVerified
-      });
-      // res.send({
-      //   success: true,
-      //   msg: "Login Successfull",
-      //   accessToken,
-      //   refreshToken,
-      //   user: {
-      //     id: user._id,
-      //     full_name: user.full_name,
-      //     email: user.email,
-      //     mobile: user.mobile,
-      //     role: user.role
-      //   },
-      // });
-    } catch (error) {
-      if (error.isJoi === true)
-        return next(createError.BadRequest("Invalid Username/Password"));
-      next(error);
-    }
-  },
+  //     res.send({
+  //       token: accessToken,
+  //       refreshToken,
+  //       id: user._id,
+  //       full_name: user.full_name,
+  //       email: user.email,
+  //       mobile: user.mobile,
+  //       role: user.role,
+  //       formStatus: user.formStatus,
+  //       profile_verify: user.is_profileVerified
+  //     });
+  //     // res.send({
+  //     //   success: true,
+  //     //   msg: "Login Successfull",
+  //     //   accessToken,
+  //     //   refreshToken,
+  //     //   user: {
+  //     //     id: user._id,
+  //     //     full_name: user.full_name,
+  //     //     email: user.email,
+  //     //     mobile: user.mobile,
+  //     //     role: user.role
+  //     //   },
+  //     // });
+  //   } catch (error) {
+  //     if (error.isJoi === true)
+  //       return next(createError.BadRequest("Invalid Username/Password"));
+  //     next(error);
+  //   }
+  // },
   adminLogin: async (req, res, next) => {
     try {
       const result = req.body;
@@ -114,6 +114,66 @@ module.exports = {
     } catch (error) {
       if (error.isJoi === true)
         return next(createError.BadRequest("Invalid Username/Password"));
+      next(error);
+    }
+  },
+
+  adminSignup: async (req, res, next) => {
+    try {
+      const result = req.body;
+      console.log("Admin Signup Request >>>", result);
+
+      // Check for required fields
+      if (!result.full_name || !result.email || !result.mobile || !result.password) {
+        throw createError.BadRequest("All fields are required");
+      }
+
+      // Check if admin already exists
+      let existingAdmin = await Model.findOne({ 
+        $or: [
+          { email: result.email },
+          { mobile: result.mobile }
+        ]
+      });
+
+      if (existingAdmin) {
+        throw createError.Conflict("Admin with this email or mobile already exists");
+      }
+
+      // Create new admin
+      const admin = new Model({
+        full_name: result.full_name,
+        email: result.email,
+        mobile: result.mobile,
+        password: result.password,
+        role: 'admin',
+        created_at: Date.now()
+      });
+
+      const savedAdmin = await admin.save();
+
+      // Generate tokens (same as login)
+      const accessToken = await signAccessToken(savedAdmin.id);
+      const refreshToken = await signRefreshToken(savedAdmin.id);
+
+      // Response matches login structure
+      res.send({
+        token: accessToken,
+        refreshToken,
+        id: savedAdmin._id,
+        full_name: savedAdmin.full_name,
+        email: savedAdmin.email,
+        mobile: savedAdmin.mobile,
+        role: savedAdmin.role,
+        formStatus: savedAdmin.formStatus || false,
+        profile_verify: savedAdmin.is_profileVerified || false
+      });
+
+    } catch (error) {
+      console.error("Admin Signup Error:", error);
+      if (error.isJoi === true) {
+        return next(createError.BadRequest("Invalid Admin Data"));
+      }
       next(error);
     }
   },

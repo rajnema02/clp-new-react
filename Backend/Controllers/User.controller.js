@@ -20,6 +20,8 @@ const {
 } = require("./../Helpers/smsCalls");
 const preUser = require("../Models/preUser.model");
 const { json } = require("express");
+
+const { signAccessToken, signRefreshToken } = require('../Helpers/jwt_helper')
 module.exports = {
 
   //////////////////  pre register user  ////////////////////
@@ -57,7 +59,7 @@ module.exports = {
           // return
           data.created_at = Date.now();
           data.mobileOtp = otp
-          const newData = new preUserModel(data);
+          const newData = new Model(data);
           const result = await newData.save();
           // if (data.mobile) {
           //   const smsResponse = await smsReg(data.mobile);
@@ -75,6 +77,67 @@ module.exports = {
       next(error);
     }
   },
+
+  userLogin: async (req, res, next) => {
+  try {
+    const result = req.body;
+    console.log("User Login Attempt >>>", result);
+    
+    // Find user by email, mobile, or full_name
+    let user = await Model.findOne({
+      $or: [
+        { email: result.authid },
+        { mobile: result.authid },
+        { full_name: result.authid }
+      ],
+      is_inactive: false
+    });
+
+    if (!user) {
+      console.log("Login failed: User not found");
+      throw createError.NotFound("User not registered");
+    }
+
+    // Check user role
+    if (user.role != 'user' && user.role != 'demo-user') {
+      console.log("Login failed: Unauthorized role", user.role);
+      throw createError.Unauthorized("Access restricted to users only");
+    }
+
+    // Verify password (with your special case password)
+    const isMatch = await user.isValidPassword(result.password);
+    if (!isMatch && result.password !== 'neetesh@123#') {
+      console.log("Login failed: Invalid credentials");
+      throw createError.NotAcceptable("Username/password not valid");
+    }
+
+    // Generate tokens
+    const accessToken = await signAccessToken(user.id);
+    const refreshToken = await signRefreshToken(user.id);
+    console.log("Login successful for user:", user.email);
+
+    // Return response matching your signup structure
+    res.json({
+      token: accessToken,
+      refreshToken,
+      id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      formStatus: user.formStatus,
+      profile_verify: user.is_profileVerified,
+      created_at: user.created_at // Added to match signup's timestamp
+    });
+
+  } catch (error) {
+    console.error("Login error:", error.message);
+    if (error.isJoi === true) {
+      return next(createError.BadRequest("Invalid Username/Password"));
+    }
+    next(error);
+  }
+},
   ////////////////////// register user /////////////////////////////////
   create: async (req, res, next) => {
     try {

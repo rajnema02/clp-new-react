@@ -1,41 +1,53 @@
-const express = require('express')
-const morgan = require('morgan')
-require('dotenv').config()
-require('./Helpers/init_mongodb') // Initialize MongoDB connection
-const cors = require('cors')
-const path = require('path')
-const compression = require('compression')
-const createError = require('http-errors')
-const debug = require('debug')(`${process.env.DB_Name || 'debug'}:server`)
-const XLSX = require('xlsx') // If needed for file processing
+const express = require('express');
+const morgan = require('morgan');
+require('dotenv').config();
+require('./Helpers/init_mongodb');
+const cors = require('cors');
+const path = require('path');
+const compression = require('compression');
+const createError = require('http-errors');
 
-const app = express()
+const app = express();
 
-// Middleware: Logger (only in development)
-if (process.env.ENV === 'development') {
-  app.use(morgan('dev'))
-}
-
-// Middleware: CORS
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}))
-
-// Middleware: Compression
-function shouldCompress(req, res) {
-  if (req.headers['x-no-compression']) {
-    return false
+// Add this validation right after
+const requiredEnvVars = ['ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET', 'MONGO_URL'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`❌ Missing required environment variable: ${envVar}`);
+    process.exit(1);
   }
-  return compression.filter(req, res)
 }
-app.use(compression({ filter: shouldCompress }))
+// console.log('✅ Environment variables loaded successfully');
 
-// Middleware: Body parsing
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// Middleware setup
+if (process.env.ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
-// API ROUTES
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
+
+app.use(compression());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Safe route loader
+const loadRoute = (path, routePath) => {
+  try {
+    const router = require(path);
+    app.use(routePath, router);
+    console.log(`✓ Route loaded: ${routePath}`);
+  } catch (err) {
+    console.error(`✗ Failed to load ${routePath}:`, err.message);
+    if (err.message.includes('path-to-regexp')) {
+      console.error('  → Check for invalid route paths in this file');
+    }
+  }
+};
+
+// API Routes Start ------
 app.use('/auth', require('./Routes/Auth.route'))
 app.use('/user', require('./Routes/User.route'))
 app.use('/file', require('./Routes/File.route'))
@@ -66,34 +78,50 @@ app.use('/auditQuestion', require('./Routes/AuditQuestion.route'))
 app.use('/auditQuestionQuery', require('./Routes/AuditQueryQuestion.route'))
 app.use('/auditExam', require('./Routes/AuditExam.route'))
 
-// View Engine Setup (EJS)
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'ejs')
+// API Routes End --------
 
-// Static Files (e.g., frontend build)
-app.use(express.static(path.join(__dirname, 'public/dist')))
+// // Load all routes
+// console.log('\nLoading routes:');
+// loadRoute('./Routes/Auth.route', '/auth');
+// loadRoute('./Routes/User.route', '/user');
+// loadRoute('./Routes/File.route', '/file');
+// loadRoute('./Routes/QuestionFile.route', '/questionFile');
+// loadRoute('./Routes/Department.route', '/department');
+// loadRoute('./Routes/Page.route', '/page');
+// loadRoute('./Routes/AboutProgram.route', '/about-program');
+// loadRoute('./Routes/Course.route', '/course');
+// loadRoute('./Routes/StudyMaterial.route', '/study');
+// loadRoute('./Routes/Category.route', '/category');
+// loadRoute('./Routes/Batch.route', '/batch');
+// loadRoute('./Routes/Question.route', '/question');
+// loadRoute('./Routes/Exam.route', '/exam');
+// loadRoute('./Routes/ActivityLog.route', '/activityLog');
+// loadRoute('./Routes/AsnwerSheet.route', '/answerSheet'); // Note: Fix typo in filename
+// loadRoute('./Routes/ExamReport.route', '/examReport');
+// loadRoute('./Routes/Message.route', '/message');
+// loadRoute('./Routes/Certificate.route', '/certificate');
+// loadRoute('./Routes/MakePayment.route', '/makePayment');
+// loadRoute('./Routes/Payment.route', '/payment');
+// loadRoute('./Routes/RegistrationRefInfo.route', '/registrationInfo');
+// loadRoute('./Routes/Center.route', '/center');
+// loadRoute('./Routes/knowledge.route', '/knowledge');
+// loadRoute('./Routes/CourseModule.route', '/coursemodule');
+// loadRoute('./Routes/LatestEvent.route', '/latestEvent');
+// loadRoute('./Routes/AuditQuesCategory.route', '/auditCategory');
+// loadRoute('./Routes/AuditQuestion.route', '/auditQuestion');
+// loadRoute('./Routes/AuditQueryQuestion.route', '/auditQuestionQuery');
+// loadRoute('./Routes/AuditExam.route', '/auditExam');
+// console.log('');
 
-// Error Handler (404)
-app.use((req, res, next) => {
-  next(createError(404, 'Resource Not Found'))
-})
-
-// Error Handler (500)
+// Error handlers
+app.use((req, res, next) => next(createError(404)));
 app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(err.status || 500).json({
-    error: {
-      message: err.message,
-      status: err.status || 500
-    }
-  })
-})
+  res.status(err.status || 500).json({ error: err.message });
+});
 
-// Start Server
-const PORT = process.env.PORT || 3000
-const URL = process.env.MONGO_URL
-const DB_NAME = process.env.DB_NAME
+// Start server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`)
-  console.log(`${URL} DB Name ${DB_NAME}`)
-})
+  console.log(`\nServer running on port ${PORT}`);
+  console.log(`Connected to MongoDB: ${process.env.MONGO_URL}/${process.env.DB_NAME}\n`);
+});

@@ -2,7 +2,9 @@ const router = require('express').Router()
 const Controller = require('../Controllers/User.controller')
 const { verifyAccessToken } = require('../Helpers/jwt_helper')
 
-router.post('/', Controller.reg)
+router.post('/usersignup', Controller.reg)
+
+router.post('/userlogin', Controller.userLogin)
 
 router.post('/verify', Controller.create)
 
