@@ -78,7 +78,7 @@ const Header = ({ onClick, onToggle }) => {
             </svg>
           </button>
 
-          <Link to="/" className="lg:hidden" style={{display:"flex", gap:"12px"}}>
+          <Link to="/admin-dashboard" className="lg:hidden" style={{display:"flex", gap:"12px"}}>
             <img
                 className="dark:hidden"
                 src="./images/logo/logo-new.png"
@@ -86,7 +86,7 @@ const Header = ({ onClick, onToggle }) => {
                 width={25}
                 height={25}
               />
-              <h1>CLP-Exam Porta</h1>
+              <h1>CLP-Exam Portal</h1>
             {/* <img
               className="hidden dark:block"
               src="./images/logo/logo-dark.svg"

@@ -83,7 +83,7 @@ const AppHeader = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/"  style={{display:"flex", gap:"12px"}} className="lg:hidden">
+          <Link to="/admin-dashboard"  style={{display:"flex", gap:"12px"}} className="lg:hidden">
             <img
                 className="dark:hidden lg:hidden"
                 src="./images/logo/logo-new.png"

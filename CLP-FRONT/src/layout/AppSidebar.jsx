@@ -16,7 +16,7 @@ const adminNavItems = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    path: "/",
+    path: "/admin-dashboard",
   },
   {
     icon: <UserCircleIcon />,
@@ -67,7 +67,7 @@ const studentNavItems = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    path: "/student-profile-form",
+    path: "/student-dashboard",
   },
   {
     icon: <UserCircleIcon />,
@@ -330,7 +330,7 @@ const AppSidebar = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/admin-dashboard" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img

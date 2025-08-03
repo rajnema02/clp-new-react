@@ -24,7 +24,7 @@ export default function AdminLogInForm() {
       try {
         const parsedAdmin = JSON.parse(admin);
         if (parsedAdmin?.id) {
-          navigate("/", { replace: true });
+          navigate("/admin-dashboard", { replace: true });
         }
       } catch (error) {
         localStorage.removeItem('admin');
@@ -61,7 +61,7 @@ export default function AdminLogInForm() {
       });
 
       setTimeout(() => {
-        navigate("/", { replace: true });
+        navigate("/admin-dashboard", { replace: true });
       }, 1000);
 
     } catch (error) {

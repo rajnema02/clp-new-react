@@ -29,6 +29,7 @@ import LogIn from "./pages/AuthPages/LogIn";
 import AdminLogin from "./pages/AuthPages/AdminLogin";
 import Signup from "./pages/AuthPages/Signup";
 import AdminSignup from "./pages/AuthPages/AdminSignup";
+import StudentsDashboard from "./student-pages/studentDashboard/StudentsDashboard";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -38,15 +39,15 @@ const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   }
 
   if (!user) {
-    return <Navigate to={adminOnly ? "/admin-login" : "/login"} replace />;
+    return <Navigate to={adminOnly ? "/admin-login" : "/"} replace />;
   }
 
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/student-profile-form" replace />;
+    return <Navigate to="/student-dashboard" replace />;
   }
 
   if (userOnly && isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/admin-dashboard" replace />;
   }
 
   return children;
@@ -56,7 +57,7 @@ const AuthRedirect = ({ admin = false }) => {
   const { user, isAdmin } = useAuth();
   
   if (user) {
-    return <Navigate to={isAdmin ? "/" : "/student-profile-form"} replace />;
+    return <Navigate to={isAdmin ? "/admin-dashboard" : "/student-dashboard"} replace />;
   }
   
   return admin ? <AdminLogin /> : <LogIn />;
@@ -80,7 +81,7 @@ export default function App() {
               <AppLayout />
             </ProtectedRoute>
           }>
-            <Route index path="/" element={<Home />} />
+            <Route index path="/admin-dashboard" element={<Home />} />
             <Route path="/batch-details-list" element={<BatchData />} />
             <Route path="/message-list" element={<MessageList />} />
             <Route path="/course-list" element={<CourseLists />} />
@@ -103,6 +104,7 @@ export default function App() {
               <AppLayout />
             </ProtectedRoute>
           }>
+            <Route path="/student-dashboard" element={<StudentsDashboard />} />
             <Route path="/student-profile-form" element={<StudentProfileForm />} />
             <Route path="/student-certificate" element={<StudentsCertificate />} />
             <Route path="/student-about-program" element={<StudentsAboutProgram />} />

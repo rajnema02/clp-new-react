@@ -1,5 +1,5 @@
 export const SuperAdminMenu = [
-  { name: "Dashboard", path: "/", icon: "dashboard" },
+  { name: "Dashboard", path: "/admin-dashboard", icon: "dashboard" },
   { name: "Batch Details", path: "/batch-details-list", icon: "batch" },
   { name: "Messages", path: "/message-list", icon: "message" },
   { name: "User Management", path: "/user-management", icon: "user" },
@@ -19,7 +19,7 @@ export const SuperAdminMenu = [
 ];
 
 export const AdminMenu = [
-  { name: "Dashboard", path: "/", icon: "dashboard" },
+  { name: "Dashboard", path: "/admin-dashboard", icon: "dashboard" },
   { name: "Batch Details", path: "/batch-details-list", icon: "batch" },
   { name: "Messages", path: "/message-list", icon: "message" },
   {
@@ -45,7 +45,7 @@ export const AdminMenu = [
 ];
 
 export const UserMenu = [
-  { name: "Dashboard", path: "/", icon: "dashboard" },
+  { name: "Dashboard", path: "/admin-dashboard", icon: "dashboard" },
   { name: "Registration", path: "/student-registration", icon: "form" },
   { name: "About Program", path: "/student-about-program", icon: "book" },
   { name: "Messages", path: "/student-message", icon: "message" },
