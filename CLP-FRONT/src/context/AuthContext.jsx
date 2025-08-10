@@ -20,66 +20,71 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) {
-          setAuthState({
-            user: null,
-            loading: false,
-            error: null
-          });
-          return;
-        }
-
-        // Verify token with backend
-        try {
-          const response = await apiService.get('auth/verify-token');
-          if (response.data.valid) {
-            // Get user data from localStorage
-            const adminData = localStorage.getItem('admin');
-            const userData = localStorage.getItem('user');
-            
-            const storedUser = safeParse(adminData) || safeParse(userData);
-            
-            if (storedUser) {
-              setAuthState({
-                user: storedUser,
-                loading: false,
-                error: null
-              });
-              return;
-            }
-          }
-        } catch (error) {
-          console.log('Token verification failed:', error);
-        }
-
-        // If verification fails or no user data
-        localStorage.removeItem('user');
-        localStorage.removeItem('admin');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        setAuthState({
-          user: null,
-          loading: false,
-          error: null
-        });
-
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('admin');
-        setAuthState({
-          user: null,
-          loading: false,
-          error: 'Failed to load user data'
-        });
+  const initializeAuth = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        setAuthState({ user: null, loading: false, error: null });
+        return;
       }
-    };
 
-    initializeAuth();
-  }, []);
+      try {
+        // ✅ Send token to backend
+        const response = await apiService.get('auth/verify-token', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        if (response.data?.valid) {
+          // ✅ Prefer backend user data
+          const userFromBackend = response.data.user;
+          if (userFromBackend) {
+            setAuthState({ user: userFromBackend, loading: false, error: null });
+
+            // Keep localStorage in sync
+            if (userFromBackend.role === 'admin') {
+              localStorage.setItem('admin', JSON.stringify(userFromBackend));
+              localStorage.removeItem('user');
+            } else {
+              localStorage.setItem('user', JSON.stringify(userFromBackend));
+              localStorage.removeItem('admin');
+            }
+            return;
+          }
+
+          // Fallback to localStorage
+          const storedUser =
+            safeParse(localStorage.getItem('admin')) ||
+            safeParse(localStorage.getItem('user'));
+
+          if (storedUser) {
+            setAuthState({ user: storedUser, loading: false, error: null });
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('Token verification failed:', error?.response?.data || error.message);
+      }
+
+      // If fails, clear auth
+      ['user', 'admin', 'accessToken', 'refreshToken'].forEach(key =>
+        localStorage.removeItem(key)
+      );
+      setAuthState({ user: null, loading: false, error: null });
+
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      ['user', 'admin'].forEach(key => localStorage.removeItem(key));
+      setAuthState({
+        user: null,
+        loading: false,
+        error: 'Failed to load user data'
+      });
+    }
+  };
+
+  initializeAuth();
+}, []);
+
 
   const login = async (credentials, isAdmin = false) => {
     try {

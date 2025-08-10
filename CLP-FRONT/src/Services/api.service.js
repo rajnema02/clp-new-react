@@ -3,12 +3,10 @@ import environment from '../environments/environments';
 
 const apiService = axios.create({
   baseURL: environment.apiUrl,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  headers: { 'Content-Type': 'application/json' }
 });
 
-// Request interceptor for auth token
+// Request interceptor: attach token
 apiService.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -20,106 +18,47 @@ apiService.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor: handle auth errors
 apiService.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If token expired and refresh token available → try refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const { data } = await axios.post(`${environment.apiUrl}/auth/refresh-token`, { refreshToken });
+
+          if (data?.accessToken) {
+            localStorage.setItem('accessToken', data.accessToken);
+
+            // Update Authorization header and retry original request
+            originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+            return apiService(originalRequest);
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+        }
+      }
     }
+
+    // If still unauthorized → logout and redirect
+    if (error.response?.status === 401) {
+      ['accessToken', 'refreshToken', 'user', 'admin'].forEach(key => localStorage.removeItem(key));
+
+      // Avoid redirect loop if already on login/admin-login
+      const publicPaths = ['/login', '/admin-login'];
+      if (!publicPaths.includes(window.location.pathname)) {
+        window.location.href = '/login';
+      }
+    }
+
     return Promise.reject(error);
   }
 );
 
 export default apiService;
-
-
-
-// // src/services/api.service.js
-// import axios from 'axios';
-// import environment from '../environments/environments';
-
-// class ApiService {
-//   constructor() {
-//     this.axiosInstance = axios.create({
-//       baseURL: environment.url,
-//       // You can add default headers here
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//     });
-
-//     // Add request interceptor for auth tokens if needed
-//     this.axiosInstance.interceptors.request.use(
-//       (config) => {
-//         const token = localStorage.getItem('accessToken');
-//         if (token) {
-//           config.headers.Authorization = `Bearer ${token}`;
-//         }
-//         return config;
-//       },
-//       (error) => {
-//         return Promise.reject(error);
-//       }
-//     );
-
-//     // Add response interceptor for error handling
-//     this.axiosInstance.interceptors.response.use(
-//       (response) => response,
-//       (error) => {
-//         if (error.response && error.response.status === 401) {
-//           // Handle unauthorized access
-//           localStorage.removeItem('accessToken');
-//           localStorage.removeItem('refreshToken');
-//           window.location.href = '/login';
-//         }
-//         return Promise.reject(error);
-//       }
-//     );
-//   }
-
-//   get(apiRoute, query = {}) {
-//     return this.axiosInstance.get(`/${apiRoute}`, { params: query });
-//   }
-
-//   count(apiRoute, query = {}) {
-//     return this.axiosInstance.get(`/${apiRoute}/count`, { params: query });
-//   }
-
-//   getById(apiRoute, id) {
-//     return this.axiosInstance.get(`/${apiRoute}/${id}`);
-//   }
-
-//   post(apiRoute, data) {
-//     return this.axiosInstance.post(`/${apiRoute}`, data);
-//   }
-
-//   put(apiRoute, id, data) {
-//     return this.axiosInstance.put(`/${apiRoute}/${id}`, data);
-//   }
-
-//   delete(apiRoute, id) {
-//     return this.axiosInstance.delete(`/${apiRoute}/${id}`);
-//   }
-
-//   allotBatch(apiRoute, id, data) {
-//     return this.axiosInstance.put(`/${apiRoute}/${id}`, data);
-//   }
-
-//   removeBatch(apiRoute, id, data) {
-//     return this.axiosInstance.put(`/${apiRoute}/${id}`, data);
-//   }
-
-//   getsub(apiRoute, query = {}) {
-//     return this.axiosInstance.get(`/${apiRoute}/sub`, { params: query });
-//   }
-// }
-
-// // Create a singleton instance
-// const apiService = new ApiService();
-
-// export default apiService;
-
-

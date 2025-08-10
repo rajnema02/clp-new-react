@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt')
 // var moment = require("moment");
 const { signAccessToken, signRefreshToken } = require('../Helpers/jwt_helper')
 const { smsOTP } = require('./../Helpers/smsCalls')
+
 module.exports = {
   // userLogin: async (req, res, next) => {
   //   try {
@@ -62,6 +63,7 @@ module.exports = {
   //     next(error);
   //   }
   // },
+
   adminLogin: async (req, res, next) => {
     try {
       const result = req.body;
@@ -84,8 +86,8 @@ module.exports = {
           throw createError.NotAcceptable("Username/password not valid");
         }
       }
-      const accessToken = await signAccessToken(user.id);
-      const refreshToken = await signRefreshToken(user.id);
+      const accessToken = await signAccessToken(user._id);  // use _id
+      const refreshToken = await signRefreshToken(user._id);
 
       res.send({
         token: accessToken,
@@ -153,8 +155,8 @@ module.exports = {
       const savedAdmin = await admin.save();
 
       // Generate tokens (same as login)
-      const accessToken = await signAccessToken(savedAdmin.id);
-      const refreshToken = await signRefreshToken(savedAdmin.id);
+      const accessToken = await signAccessToken(savedAdmin._id);  // use _id here
+      const refreshToken = await signRefreshToken(savedAdmin._id);
 
       // Response matches login structure
       res.send({
@@ -177,20 +179,81 @@ module.exports = {
       next(error);
     }
   },
-  profile: async (req, res, next) => {
+
+  profile: async (req, res) => {
     try {
-      data = {
-        success: true,
-        msg: "Profile Fetched",
-        user: req.user
+      let userId = req.params.id || req.user?.userId || req.user?._id || req.user?.sub;
+
+      if (!userId) {
+        return res.status(400).json({ 
+          success: false,
+          message: "User ID is required"
+        });
       }
-      data = JSON.parse(JSON.stringify(data))
-      delete data.user.password
-      res.send(data);
+
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid User ID format"
+        });
+      }
+
+      const user = await Model.findById(userId).select("-password");
+      if (!user) {
+        return res.status(404).json({ 
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Profile fetched successfully",
+        user
+      });
     } catch (error) {
-      if (error.isJoi === true)
-        return next(createError.BadRequest("Invalid Username/Otp"));
-      next(error);
+      console.error("Profile error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  },
+
+  getProfileById : async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Validate id
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid User ID format'
+        });
+      }
+
+      // Find user by ID (exclude password)
+      const user = await Model.findById(id).select('-password');
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile fetched successfully',
+        data: user 
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
     }
   },
 
@@ -199,17 +262,18 @@ module.exports = {
       const result = req.body
       console.log(req.body);
 
-      if (!result) {
+      if (!result || !result.id) {
         return next(createError.NotAcceptable('Invalid Query Data'))
       }
       result.updated_at = Date.now()
       // result.updated_by = req.user.username
 
       let user = {}
-      // console.log('Result: ', result)
       if (result) {
+        if (!mongoose.Types.ObjectId.isValid(result.id)) {
+          throw createError.BadRequest('Invalid User ID format')
+        }
         user = await Model.findById(result.id)
-        // console.log('User By Email :', user)
         if (!user) {
           throw createError.NotFound('No user found to update')
         }
@@ -217,21 +281,20 @@ module.exports = {
         throw createError.NotFound('No query Data')
       }
 
+      // Optional: uncomment if you want to check current password
       // const isMatch = await user.isValidPassword(result.currentPassword)
       // if (!isMatch)
-      //   throw createError.Unauthorized('Cureent password is not valid')
+      //   throw createError.Unauthorized('Current password is not valid')
 
       const salt = await bcrypt.genSalt(10)
       const hashedPassword = await bcrypt.hash(result.password, salt)
       const newPassword = hashedPassword
       result.password = newPassword
 
-      updatedUser = await Model.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(result.id) }, { $set: result })
+      await Model.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(result.id) }, { $set: result })
 
       res.send({ success: true, msg: 'Password updated successfully' })
     } catch (error) {
-      // if (error)
-      //   return next(createError.BadRequest('Bad Request'))
       next(error)
     }
   },
@@ -246,10 +309,8 @@ module.exports = {
   //     result.updated_by = req.user.username
 
   //     let user = {}
-  //     // console.log('Result: ', result)
   //     if (result) {
   //       user = req.user
-  //       // console.log('User By Email :', user)
   //       if (!user) {
   //         throw createError.NotFound('No user found to update')
   //       }
@@ -287,11 +348,11 @@ module.exports = {
         throw createError.NotFound('No user found to send otp')
       }
       const otp = generateOTP()
-      updatedUser = await Model.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(result.id) }, { $set: { otp } })
+      await Model.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(result._id) }, { $set: { otp } })
       if (result) {
         // console.log("OTP>>>>>>",otp,mobile);
         // ******************
-        // Uncoment
+        // Uncomment
         const smsResponse = await smsOTP(mobile, otp)
         console.log("OTP_SMS ", smsResponse.data);
         // ********************
@@ -319,25 +380,20 @@ module.exports = {
       console.log('REQUEST Result: ', result)
       if (result) {
         user = await Model.findOne({ mobile: result.mobile })
-        // console.log('User By MOBILE :', user)
       } else {
-        throw createError.NotAcceptable('Please enter valid registed mobile number!!')
+        throw createError.NotAcceptable('Please enter valid registered mobile number!!')
       }
 
       // if (!user.is_approved) {
       //   throw createError.NotAcceptable('User not verified yet, Please wait for approval.')
       // }
 
-      // const isMatch = user.mobile == result.mobile
       if (!user) {
-        throw createError.NotAcceptable('Please enter valid registed mobile number!!')
-
+        throw createError.NotAcceptable('Please enter valid registered mobile number!!')
       }
 
-
-
-      const accessToken = await signAccessToken(user.id)
-      const refreshToken = await signRefreshToken(user.id)
+      const accessToken = await signAccessToken(user._id)
+      const refreshToken = await signRefreshToken(user._id)
 
       const userDataSend = {
         id: user._id,
@@ -381,8 +437,8 @@ module.exports = {
     }
   },
 }
-function generateOTP() {
 
+function generateOTP() {
   // Declare a digits variable 
   // which stores all digits
   var digits = '0123456789';

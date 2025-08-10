@@ -55,45 +55,51 @@ module.exports = {
   },
 
   verifyAccessToken: (req, res, next) => {
-    try {
-      let token = req.headers.token || 
-                 (req.headers.authorization && req.headers.authorization.split(' ')[1])
+  try {
+    let token = req.headers.token ||
+      (req.headers.authorization && req.headers.authorization.split(' ')[1]);
 
-      if (!token) {
-        return next(createError.Unauthorized('Access token is required'))
+    if (!token) {
+      return next(createError.Unauthorized('Access token is required'));
+    }
+
+    JWT.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, payload) => {
+      if (err) {
+        const message =
+          err.name === 'JsonWebTokenError'
+            ? 'Invalid token'
+            : err.message === 'jwt expired'
+            ? 'Token expired'
+            : err.message;
+        return next(createError.Unauthorized(message));
       }
 
-      JWT.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, payload) => {
-        if (err) {
-          const message = err.name === 'JsonWebTokenError' 
-            ? 'Invalid token' 
-            : err.message === 'jwt expired' 
-              ? 'Token expired' 
-              : err.message
-          return next(createError.Unauthorized(message))
+      try {
+        // Ensure payload.aud is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(payload.aud)) {
+          return next(createError.Unauthorized('Invalid user ID in token'));
         }
 
-        try {
-          const user = await User.findOne({ 
-            _id: mongoose.Types.ObjectId(payload.aud) 
-          }).select('-password')
+        const user = await User.findById(payload.aud).select('-password');
 
-          if (!user) {
-            return next(createError.Unauthorized('User not found'))
-          }
-
-          req.user = user
-          req.payload = payload
-          next()
-        } catch (dbError) {
-          console.error('Database error during token verification:', dbError)
-          next(createError.InternalServerError('Authentication failed'))
+        if (!user) {
+          return next(createError.Unauthorized('User not found'));
         }
-      })
-    } catch (error) {
-      next(error)
-    }
-  },
+
+        req.user = user;
+        req.payload = payload;
+        next();
+      } catch (dbError) {
+        console.error('Database error during token verification:', dbError.message);
+        return next(createError.InternalServerError('Database query failed during authentication'));
+      }
+    });
+  } catch (error) {
+    console.error('Unexpected error in verifyAccessToken:', error.message);
+    next(createError.InternalServerError('Internal server error during authentication'));
+  }
+}
+,
 
   signRefreshToken: (userId) => {
     return new Promise((resolve, reject) => {
