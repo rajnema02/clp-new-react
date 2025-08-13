@@ -1,101 +1,109 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import apiService from "../../Services/api.service";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "../ui/table/index";
-import Button from "../ui/button/Button";
-import PageBreadcrumb from "../common/PageBreadCrumb";
-import ComponentCard from "../common/ComponentCard";
-import PageMeta from "../common/PageMeta";
-
-// Dummy course data
-const courseData = [
-  {
-    id: 1,
-    courseCode: "CS101",
-    courseType: "Online",
-    courseName: "Introduction to React",
-    courseFees: "₹5,000",
-    courseDuration: "6 weeks",
-  },
-  {
-    id: 2,
-    courseCode: "CS201",
-    courseType: "Offline",
-    courseName: "Advanced Node.js",
-    courseFees: "₹8,000",
-    courseDuration: "8 weeks",
-  },
-];
+} from "../../components/ui/table/index";
+import Button from "../../components/ui/button/Button";
+import ComponentCard from "../../components/common/ComponentCard";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import PageMeta from "../../components/common/PageMeta";
 
 const CourseList = () => {
+  const [courses, setCourses] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = () => {
+    apiService
+      .get("/course")
+      .then((res) => {
+        setCourses(res.data.data || []);
+      })
+      .catch((err) => console.error("Error fetching courses", err));
+  };
+
+  const handleDelete = async (id) => {
+  if (window.confirm("Are you sure you want to permanently delete this course?")) {
+    console.log("Deleting course:", id); // Debug
+    try {
+      const res = await apiService.delete(`/course/${id}`);
+      if (res.data.success) {
+        alert("Course deleted successfully.");
+        setCourses((prev) => prev.filter((c) => c._id !== id));
+      } else {
+        alert(res.data.message || "Delete failed.");
+      }
+    } catch (err) {
+      console.error("Error deleting course:", err.response?.data || err.message);
+      alert("An error occurred while deleting the course.");
+    }
+  }
+};
+
+
   return (
     <>
       <PageMeta
         title="Course List | TailAdmin"
         description="This is the course list page in TailAdmin"
       />
-      <PageBreadcrumb pageTitle="Courses" />
+      <PageBreadcrumb pageTitle="Course List" />
 
       <div className="space-y-6">
-        <ComponentCard title="Courses Table">
+        <ComponentCard
+          title="Course List"
+          action={
+            <Button size="sm" variant="primary" onClick={() => navigate("/course-create")}>
+              Create Course
+            </Button>
+          }
+        >
+        <Button size="sm" variant="primary" onClick={() => navigate("/course-create")}>
+              Create Course
+            </Button>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-x-auto">
+            <div className="max-w-full overflow-x-auto"> 
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Code
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Type
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Name
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Fees
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Course Duration
-                    </TableCell>
-                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">
-                      Action
-                    </TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Course Name</TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Course Code</TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Type</TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Duration</TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Fees</TableCell>
+                    <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Action</TableCell>
                   </TableRow>
                 </TableHeader>
-
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {courseData.map((course) => (
-                    <TableRow key={course.id}>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90">
-                        {course.courseCode}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {course.courseType}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {course.courseName}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {course.courseFees}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        {course.courseDuration}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 space-x-2 flex flex-wrap gap-2">
-                        <Button size="sm" variant="secondary">
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="destructive">
-                          Delete
-                        </Button>
+                  {courses.length > 0 ? (
+                    courses.map((course) => (
+                      <TableRow key={course._id}>
+                        <TableCell className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90">{course.course_name}</TableCell>
+                        <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">{course.course_code}</TableCell>
+                        <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">{course.course_type}</TableCell>
+                        <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">{course.course_duration}</TableCell>
+                        <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">{course.fees}</TableCell>
+                        <TableCell className="px-5 py-4 flex gap-2">
+                          <Button size="sm" variant="default" onClick={() => navigate(`/course-edit/${course._id}`)}>Edit</Button>
+                          <Button size="sm" variant="danger" onClick={() => handleDelete(course._id)}>Delete</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="px-5 py-4 text-center text-gray-500 dark:text-gray-400">
+                        No courses found.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

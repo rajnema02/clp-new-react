@@ -26,7 +26,7 @@ const adminNavItems = [
   {
     icon: <UserCircleIcon />,
     name: "Batch Details",
-    path: "/batch-details-list",
+    path: "/batch-list",
   },
   {
     icon: <UserCircleIcon />,

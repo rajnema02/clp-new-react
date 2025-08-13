@@ -23,70 +23,67 @@ module.exports = {
         }
         data.created_at = Date.now();
         data.is_inactive = false;
-        // data.created_by = req.user._id
 
         const newData = new Model(data);
         const result = await newData.save();
         res.json(newData);
-        return;
       });
     } catch (error) {
       next(error);
     }
   },
+
   get: async (req, res, next) => {
     try {
       const { id } = req.params;
-      if (!id) {
-        throw createError.BadRequest("Invalid Parameters");
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw createError.BadRequest("Invalid batch ID");
       }
-      const result = await Model.findOne({ _id: mongoose.Types.ObjectId(id) });
-      if (!result) {
-        throw createError.NotFound(`No ${ModelName} Found`);
+      const batch = await Model.findById(new mongoose.Types.ObjectId(id));
+      if (!batch) {
+        throw createError.NotFound("Batch not found");
       }
-      res.json(result);
-      return;
+      res.json(batch);
     } catch (error) {
       next(error);
     }
   },
+
   getBatchesName: async (req, res, next) => {
     try {
-      console.log('getBatche called')
+      console.log("getBatchesName called");
       const batchIdArray = req.body;
       const batchNameArray = [];
-      for (let id of batchIdArray) {
-        const batch = await Batch.findOne({ _id: mongoose.Types.ObjectId(id) });
-        batchNameArray.push(batch.batch_name);
 
+      for (let id of batchIdArray) {
+        const batch = await Model.findOne({ _id: mongoose.Types.ObjectId(id) });
+        batchNameArray.push(batch.batch_name);
       }
+
       res.json(batchNameArray);
-      return;
     } catch (error) {
       next(error);
     }
   },
+
   getByTitle: async (req, res, next) => {
     try {
-      console.log(req.params);
       const { title } = req.params;
-      console.log(title);
       if (!title) {
         throw createError.BadRequest("Invalid Parameters");
       }
-      const result = await Model.findOne({ title: title, is_inactive: false });
+      const result = await Model.findOne({ title, is_inactive: false });
       if (!result) {
         throw createError.NotFound(`No ${ModelName} Found`);
       }
       res.json(result);
-      return;
     } catch (error) {
       next(error);
     }
   },
+
   getBySlug: async (req, res, next) => {
     try {
-      console.log(req.params);
       const { slug } = req.params;
       if (!slug) {
         throw createError.BadRequest("Invalid Parameters");
@@ -96,89 +93,43 @@ module.exports = {
         throw createError.NotFound(`No ${ModelName} Found`);
       }
       res.json(result);
-      return;
     } catch (error) {
       next(error);
     }
   },
-  list: async (req, res, next) => {
+
+  // FIXED: Using req.query instead of req.body for GET requests
+  list: async (req, res) => {
     try {
-      const {
-        batch_name,
-        course_type,
-        course_name,
-        disabled,
-        is_inactive,
-        page,
-        is_profileVerified,
-        limit,
-        sort,
-        isAuditExam,
-        order_by,
-        order_in
-      } = req.query;
-      const _page = page ? parseInt(page) : 1;
-      const _limit = limit ? parseInt(limit) : 20;
-      const _skip = (_page - 1) * _limit;
-      // const _sort = sort ? sort : "+title";
-      let _sort = {};
-      if (order_by) {
-        _sort[order_by] = order_in == "desc" ? -1 : 1;
-      } else {
-        _sort["_id"] = -1;
-      }
-      const query = {};
+      const { 
+        course_name, 
+        course_code, 
+        course_type, 
+        course_duration, 
+        description, 
+        course_content, 
+        course_fees, 
+        created_by 
+      } = req.query; // ✅ Changed from req.body to req.query
 
-      if (course_type) {
-        query.course_type = new RegExp(course_type, "i");
-      }
-      // if (course_name) {
-      //   query.course_name = new RegExp(course_name, "i");
-      // }
-      if (is_profileVerified) {
-        query.is_profileVerified = is_profileVerified;
-      }
-      if (isAuditExam) {
-        query.isAuditExam = isAuditExam && isAuditExam == "true" ? true : false;
-      }
+      // Build filter dynamically
+      const filter = {};
+      if (course_name) filter.course_name = course_name;
+      if (course_code) filter.course_code = course_code;
+      if (course_type) filter.course_type = course_type;
+      if (course_duration) filter.course_duration = course_duration;
+      if (description) filter.description = description;
+      if (course_content) filter.course_content = course_content;
+      if (course_fees) filter.course_fees = course_fees;
+      if (created_by) filter.created_by = new mongoose.Types.ObjectId(created_by);
 
-      // query.disabled = (disabled && disabled == 'true') ? true : false
-      query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
-
-
-      console.log("Batch Query Data>>>>", query);
-      const result = await Model.aggregate([
-        {
-          $match: query,
-        },
-        {
-          $skip: _skip,
-        },
-        {
-          $limit: _limit,
-        },
-        {
-          $sort: _sort,
-        },
-      ]);
-      const resultCount = await Model.countDocuments(query);
-      // .sort(_sort).skip(_skip).limit(_limit)
-      res.json({
-        data: result,
-        meta: {
-          current_page: _page,
-          from: _skip + 1,
-          last_page: Math.ceil(resultCount / _limit, 10),
-          per_page: _limit,
-          to: _skip + _limit,
-          total: resultCount,
-        },
-      });
-      return;
+      const results = await Model.find(filter);
+      res.status(200).json(results);
     } catch (error) {
-      next(error);
+      res.status(500).json({ error: error.message });
     }
   },
+
   count: async (req, res, next) => {
     try {
       const { title, disabled, is_inactive, page, limit, sort } = req.query;
@@ -194,39 +145,35 @@ module.exports = {
       query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
       const result = await Model.countDocuments(query);
       res.json(result);
-      return;
     } catch (error) {
       next(error);
     }
   },
-  update: async (req, res, next) => {
+
+  update: async (req, res) => {
     try {
-      upload(req, res, async (err) => {
-        if (err) {
-          return res.status(501).json({ error: err });
-        }
-        const { id } = req.params;
-        const data = req.body;
-        console.log(data);
-        if (!id) {
-          throw createError.BadRequest("Invalid Parameters");
-        }
-        if (!data) {
-          throw createError.BadRequest("Invalid Parameters");
-        }
-        data.updated_at = Date.now();
-        const result = await Model.findByIdAndUpdate(
-          { _id: mongoose.Types.ObjectId(id) },
-          { $set: data }
-        );
-        console.log(result);
-        res.json(result);
-        return;
+      const batchId = req.params.id;
+
+      if (!mongoose.Types.ObjectId.isValid(batchId)) {
+        return res.status(400).json({ error: "Invalid batch ID" });
+      }
+
+      const updatedData = { ...req.body };
+      const updatedBatch = await Model.findByIdAndUpdate(batchId, updatedData, {
+        new: true,
+        runValidators: true,
       });
+
+      if (!updatedBatch) {
+        return res.status(404).json({ error: "Batch not found" });
+      }
+
+      res.status(200).json({ message: "Batch updated successfully", data: updatedBatch });
     } catch (error) {
-      next(error);
+      res.status(500).json({ error: error.message });
     }
   },
+
   updateByTitle: async (req, res, next) => {
     try {
       const { title } = req.params;
@@ -234,41 +181,43 @@ module.exports = {
       if (!title) {
         throw createError.BadRequest("Invalid Parameters");
       }
-      if (!title) {
-        throw createError.BadRequest("Invalid Parameters");
-      }
       data.updated_at = Date.now();
       const result = await Model.updateOne(
-        { title: title, is_inactive: false },
+        { title, is_inactive: false },
         { $set: data }
       );
       res.json(result);
-      return;
     } catch (error) {
       next(error);
     }
   },
+
   delete: async (req, res, next) => {
     try {
       const { id } = req.params;
-      if (!id) {
-        throw createError.BadRequest("Invalid Parameters");
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw createError.BadRequest("Invalid batch ID");
       }
-      const deleted_at = Date.now();
-      const result = await Model.updateOne(
-        { _id: mongoose.Types.ObjectId(id) },
-        { $set: { is_inactive: true, deleted_at } }
+
+      // First, remove batch from students
+      await StudentModel.updateMany(
+        { batch: new mongoose.Types.ObjectId(id) },
+        { $unset: { batch: "" } }
       );
-      const students = await StudentModel.updateMany({ batch: mongoose.Types.ObjectId(id) }, {
-        $unset: { batch: "" }
-      })
-      
-      res.json(result);
-      return;
+
+      // Then, permanently delete batch
+      const result = await Model.deleteOne({ _id: new mongoose.Types.ObjectId(id) });
+
+      if (result.deletedCount === 0) {
+        throw createError.NotFound("Batch not found or already deleted");
+      }
+
+      res.json({ message: "Batch deleted permanently" });
     } catch (error) {
       next(error);
     }
   },
+
   restore: async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -295,7 +244,6 @@ module.exports = {
         { $set: { is_inactive: false, restored_at } }
       );
       res.json(result);
-      return;
     } catch (error) {
       next(error);
     }

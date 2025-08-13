@@ -6,7 +6,6 @@ const CourseSchema = mongoose.Schema({
         type: String,
         trim : true
     },
-
     course_code: {
         type: String,
         trim : true
@@ -18,10 +17,7 @@ const CourseSchema = mongoose.Schema({
         type: String,
         trim : true
     },
-    description: {
-        type: String,
-        trim : true
-    },
+    
 
     course_content: {
         type: String,
@@ -50,7 +46,4 @@ const CourseSchema = mongoose.Schema({
     }
 
 });
-
-
-
-const Counter = module.exports = mongoose.model('Course', CourseSchema);
+ module.exports = mongoose.model('Course', CourseSchema);

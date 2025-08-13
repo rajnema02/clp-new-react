@@ -1,25 +1,33 @@
-const router = require('express').Router()
-const Controller = require('../Controllers/Course.controller')
-const { verifyAccessToken } = require('../Helpers/jwt_helper')
+const router = require('express').Router();
+const Controller = require('../Controllers/Course.controller');
+const { verifyAccessToken } = require('../Helpers/jwt_helper');
+const {upload} = require('../Helpers/Upload')
 
-router.post('/',verifyAccessToken,  Controller.create)
+// CREATE
+router.post("/", upload.single("course_content"), Controller.createCourse);
 
-router.get('/count', verifyAccessToken, Controller.count)
 
-router.get('/:id',verifyAccessToken,  Controller.get)
+// COUNT
+router.get('/count', verifyAccessToken, Controller.count);
 
-router.get('/title/:title', verifyAccessToken, Controller.getByTitle)
+// SPECIFIC FILTERS FIRST
+router.get('/title/:title', verifyAccessToken, Controller.getByTitle);
+router.get('/slug/:slug', verifyAccessToken, Controller.getBySlug);
 
-router.get('/slug/:slug', verifyAccessToken, Controller.getBySlug)
+// LIST ALL
+router.get('/', verifyAccessToken, Controller.list);
 
-router.get('/',verifyAccessToken,  Controller.list)
+// GET BY ID
+router.get('/:id', verifyAccessToken, Controller.get);
 
-router.put('/:id',verifyAccessToken,  Controller.update)
+// UPDATE
+router.put('/:id', verifyAccessToken, Controller.update);
+router.put('/title/:title', verifyAccessToken, Controller.updateByTitle);
 
-router.put('/title/:title', verifyAccessToken, Controller.updateByTitle)
+// DELETE
+router.delete('/:id', verifyAccessToken, Controller.deleteCourse);
 
-router.delete('/:id', verifyAccessToken, Controller.delete)
+// RESTORE
+router.put('/:id/restore', verifyAccessToken, Controller.restore);
 
-router.put('/:id/restore', verifyAccessToken, Controller.restore)
-
-module.exports = router
+module.exports = router;

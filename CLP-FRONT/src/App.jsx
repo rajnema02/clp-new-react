@@ -8,7 +8,7 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import BatchData from "./pages/Batch/BatchData";
+import BatchData from "./pages/Batch/BatchsList";
 import CourseLists from "./pages/course/CourseLists";
 import ModulesList from "./pages/course/ModulesList";
 import MessageList from "./pages/message/MessageList";
@@ -30,6 +30,11 @@ import AdminLogin from "./pages/AuthPages/AdminLogin";
 import Signup from "./pages/AuthPages/Signup";
 import AdminSignup from "./pages/AuthPages/AdminSignup";
 import StudentsDashboard from "./student-pages/studentDashboard/StudentsDashboard";
+import CoursesEdit from "./pages/course/CoursesEdit";
+import CoursesCreate from "./pages/course/CoursesCreate";
+import BatchsList from "./pages/Batch/BatchsList";
+import BatchsEdit from "./pages/Batch/BatchsEdit";
+import BatchsCreate from "./pages/Batch/BatchsCreate";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -82,9 +87,13 @@ export default function App() {
             </ProtectedRoute>
           }>
             <Route index path="/admin-dashboard" element={<Home />} />
-            <Route path="/batch-details-list" element={<BatchData />} />
+            <Route path="/batch-list" element={<BatchsList />} />
+            <Route path="/batch-create" element={<BatchsCreate/>} />
+            <Route path="/batch-edit/:id" element={<BatchsEdit />} />
             <Route path="/message-list" element={<MessageList />} />
             <Route path="/course-list" element={<CourseLists />} />
+            <Route path="/course-create" element={<CoursesCreate />} />
+            <Route path="/course-edit/:id" element={<CoursesEdit />} />
             <Route path="/module-list" element={<ModulesList />} />
             <Route path="/study-material-list" element={<ModulesList />} />
             <Route path="/user-management" element={<UsersManagementList />} />
