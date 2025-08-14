@@ -1,12 +1,15 @@
 const router = require('express').Router();
 const Controller = require('../Controllers/Course.controller');
 const { verifyAccessToken } = require('../Helpers/jwt_helper');
-const {upload} = require('../Helpers/Upload')
+const {uploadFile} = require('../Helpers/Upload')
 
 // CREATE
-router.post("/", upload.single("course_content"), Controller.createCourse);
-
-
+router.post(
+    "/",
+    verifyAccessToken,
+    uploadFile("courses", [".pdf", ".doc", ".docx", ".txt"]).single("course_content"),
+    Controller.createCourse
+);
 // COUNT
 router.get('/count', verifyAccessToken, Controller.count);
 

@@ -48,18 +48,12 @@ const BatchList = () => {
           <thead className="bg-gray-100">
             <tr>
               {[
-                "Name",
-                "Course",
-                "Type",
-                "Code",
-                "Disclaimer",
-                "Days",
-                "Start",
-                "End",
-                "Start Time",
-                "End Time",
-                "Exam?",
-                "Audit?",
+                "Batch Name",
+                "Course Type",
+                "Course Name",
+                "Batch Days",
+                "Batch Start Time",
+                "Batch End Time",
                 "Total Questions",
                 "% Course Questions",
                 "Actions",
@@ -81,23 +75,23 @@ const BatchList = () => {
                   className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-4 py-2 border-b">{batch.batch_name}</td>
-                  <td className="px-4 py-2 border-b">{batch.course_name}</td>
                   <td className="px-4 py-2 border-b">{batch.course_type}</td>
-                  <td className="px-4 py-2 border-b">{batch.course_code}</td>
-                  <td className="px-4 py-2 border-b">{batch.disclaimer}</td>
+                  <td className="px-4 py-2 border-b">{batch.course_name}</td>
+                  {/* <td className="px-4 py-2 border-b">{batch.course_code}</td>
+                  <td className="px-4 py-2 border-b">{batch.disclaimer}</td> */}
                   <td className="px-4 py-2 border-b">
                     {(batch.days || []).join(", ")}
                   </td>
-                  <td className="px-4 py-2 border-b">{batch.startDate}</td>
-                  <td className="px-4 py-2 border-b">{batch.endDate}</td>
+                  {/* <td className="px-4 py-2 border-b">{batch.startDate}</td>
+                  <td className="px-4 py-2 border-b">{batch.endDate}</td> */}
                   <td className="px-4 py-2 border-b">{batch.startTime}</td>
                   <td className="px-4 py-2 border-b">{batch.endTime}</td>
-                  <td className="px-4 py-2 border-b">
+                  {/* <td className="px-4 py-2 border-b">
                     {batch.is_exam ? "Yes" : "No"}
                   </td>
                   <td className="px-4 py-2 border-b">
                     {batch.isAuditExam ? "Yes" : "No"}
-                  </td>
+                  </td> */}
                   <td className="px-4 py-2 border-b">
                     {batch.total_no_of_questions ?? "-"}
                   </td>
@@ -105,6 +99,19 @@ const BatchList = () => {
                     {batch.percent_of_course_questions ?? "-"}
                   </td>
                   <td className="px-4 py-2 border-b flex gap-2">
+                  <Link
+                      to={`/batch-alloted-student/${batch._id}`}
+                      className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                    >
+                      View Alloted Students
+                    </Link>
+                    <Link
+                      to={`/batch-allotment/${batch._id}`}
+                      className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                    >
+                      Allot Batch
+                    </Link>
+
                     <Link
                       to={`/batch-edit/${batch._id}`}
                       className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"

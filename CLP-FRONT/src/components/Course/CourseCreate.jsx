@@ -81,17 +81,23 @@ const CourseCreate = () => {
             className="grid grid-cols-1 gap-4 md:grid-cols-2"
           >
             <div>
-              <input
-                className="input"
-                name="course_type"
-                value={formData.course_type}
-                onChange={handleChange}
-                placeholder="Course Type"
-              />
-              {errors.course_type && (
-                <p className="text-red-500 text-sm">{errors.course_type}</p>
-              )}
-            </div>
+  <select
+    className="input"
+    name="course_type"
+    value={formData.course_type}
+    onChange={handleChange}
+  >
+    <option value="">Select Course Type</option>
+    <option value="Training program for Govt Organisation">Training program for Govt Organisation</option>
+    <option value="Internship Program">Internship Program</option>
+    <option value="Regular Course">Regular Course </option>
+    <option value="E-Learning Course">E-Learning Course</option>
+  </select>
+  {errors.course_type && (
+    <p className="text-red-500 text-sm">{errors.course_type}</p>
+  )}
+</div>
+
 
             <div>
               <input

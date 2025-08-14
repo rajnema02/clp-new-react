@@ -5,29 +5,44 @@ const mongoose = require("mongoose");
 
 module.exports = {
   create: async (req, res, next) => {
-    try {
-      const data = req.body;
-      const dataExists = await Model.findOne({
-        message_description: data.message_description,
-        is_inactive: false,
-      });
-      if (dataExists) {
-        throw createError.Conflict(`Data already exists`);
-      } else {
-        data.created_at = Date.now();
-        data.is_inactive = false;
-        data.created_by = req.user._id;
-        data.created_on = Date.now();
-        const newData = new Model(data);
-        const result = await newData.save();
-        console.log(result);
-        res.json(newData);
-        return;
-      }
-    } catch (error) {
-      next(error);
-    }
-  },
+        try {
+            const data = req.body;
+
+            // Require file
+            if (!req.file) {
+                return res.status(400).json({ error: "Message file is required" });
+            }
+
+            // Check duplicate message
+            const dataExists = await Model.findOne({
+                message_description: data.message_description,
+                is_inactive: false,
+            });
+
+            if (dataExists) {
+                throw createError.Conflict(`Data already exists`);
+            } else {
+                data.created_at = Date.now();
+                data.is_inactive = false;
+                data.created_by = req.user._id;
+                data.created_on = Date.now();
+
+                // Save uploaded file name
+                data.message_file = req.file.filename;
+
+                const newData = new Model(data);
+                const result = await newData.save();
+
+                res.status(201).json({
+                    message: "Message created successfully",
+                    data: result
+                });
+                return;
+            }
+        } catch (error) {
+            next(error);
+        }
+    },
   get: async (req, res, next) => {
     try {
       const batchId = req.params.id;
@@ -348,18 +363,33 @@ module.exports = {
     }
   },
   disableMessage: async (req, res, next) => {
-    try {
-      const id = req.params.id;
-      const data = await Model.findOne({ _id: mongoose.Types.ObjectId(id) });
-      data.updated_at = Date.now();
-      const result = await Model.updateOne(
-        { _id: mongoose.Types.ObjectId(id) },
-        { $set: { disable: true } }
-      );
-      res.json(result);
-      return;
-    } catch (error) {
-      next(error);
+  try {
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid message ID" });
     }
-  },
+
+    const result = await Model.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          disable: true,
+          updated_at: Date.now()
+        }
+      },
+      { new: true } // return updated document
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
 };
+  

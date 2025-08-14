@@ -21,6 +21,36 @@ const BatchCreate = () => {
     percent_of_course_questions: ""
   });
 
+  const [courseList, setCourseList] = useState([]);
+  const [errors, setErrors] = useState({});
+
+
+const handleCourseTypeChange = async (e) => {
+  const selectedType = e.target.value;
+
+  // Update formData
+  setFormData({ ...formData, course_type: selectedType, course_name: "" });
+
+  // Clear previous error for course_type
+  setErrors({ ...errors, course_type: "" });
+
+  if (!selectedType) {
+    setCourseList([]);
+    return;
+  }
+
+  try {
+    const res = await apiService.get("/course", {
+      params: { course_type: selectedType },
+    });
+    setCourseList(res.data.data || []);
+  } catch (err) {
+    console.error("Error fetching courses by type", err);
+    setCourseList([]);
+  }
+};
+
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === "days") {
@@ -50,10 +80,47 @@ const BatchCreate = () => {
       <h2 className="text-xl font-bold mb-4">Create New Batch</h2>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
         <input className="border p-2 rounded" name="batch_name" placeholder="Batch Name" onChange={handleChange} />
-        <input className="border p-2 rounded" name="course_name" placeholder="Course Name" onChange={handleChange} />
-        <input className="border p-2 rounded" name="course_type" placeholder="Course Type" onChange={handleChange} />
-        <input className="border p-2 rounded" name="course_code" placeholder="Course Code" onChange={handleChange} />
-        <input className="border p-2 rounded col-span-2" name="disclaimer" placeholder="Disclaimer" onChange={handleChange} />
+        <input className="border p-2 rounded " name="disclaimer" placeholder="Discription" onChange={handleChange} />
+<div>
+  <select
+    className="border p-2 rounded"
+    name="course_type"
+    value={formData.course_type}
+    onChange={handleCourseTypeChange} // custom handler
+  >
+    <option value="">Select Course Type</option>
+    <option value="Training program for Govt Organisation">
+      Training program for Govt Organisation
+    </option>
+    <option value="Special Training Program">Special Training Program</option>
+    <option value="Internship Program">Internship Program</option>
+    <option value="Regular">Regular Courses</option>
+    <option value="E-Learning Course">E-Learning Course</option>
+  </select>
+  {errors.course_type && (
+    <p className="text-red-500 text-sm">{errors.course_type}</p>
+  )}
+</div>
+
+<div>
+  <select
+    className="border p-2 rounded"
+    name="course_name"
+    value={formData.course_name}
+    onChange={handleChange}
+  >
+    <option value="">Select Course Name</option>
+    {courseList.map((course) => (
+      <option key={course._id} value={course.course_name}>
+        {course.course_name}
+      </option>
+    ))}
+  </select>
+  {errors.course_name && (
+    <p className="text-red-500 text-sm">{errors.course_name}</p>
+  )}
+</div>
+
         
         <div className="col-span-2">
           <label className="font-medium">Days:</label>
@@ -72,12 +139,12 @@ const BatchCreate = () => {
         <input type="time" className="border p-2 rounded" name="startTime" onChange={handleChange} />
         <input type="time" className="border p-2 rounded" name="endTime" onChange={handleChange} />
 
-        <label className="flex items-center gap-2">
+        {/* <label className="flex items-center gap-2">
           <input type="checkbox" name="is_exam" onChange={handleChange} /> Exam?
         </label>
         <label className="flex items-center gap-2">
           <input type="checkbox" name="isAuditExam" onChange={handleChange} /> Audit?
-        </label>
+        </label> */}
 
         <input className="border p-2 rounded" name="total_no_of_questions" placeholder="Total Questions" onChange={handleChange} />
         <input className="border p-2 rounded" name="percent_of_course_questions" placeholder="% Course Questions" onChange={handleChange} />

@@ -11,7 +11,7 @@ import Home from "./pages/Dashboard/Home";
 import BatchData from "./pages/Batch/BatchsList";
 import CourseLists from "./pages/course/CourseLists";
 import ModulesList from "./pages/course/ModulesList";
-import MessageList from "./pages/message/MessageList";
+import MessageList from "./pages/message/MessagesList";
 import ScheduleExamsList from "./pages/Exam/ScheduleExamsList";
 import BulkUploadsList from "./pages/Exam/BulkUploadsList";
 import QuestionBanksList from "./pages/Exam/QuestionBanksList";
@@ -35,6 +35,10 @@ import CoursesCreate from "./pages/course/CoursesCreate";
 import BatchsList from "./pages/Batch/BatchsList";
 import BatchsEdit from "./pages/Batch/BatchsEdit";
 import BatchsCreate from "./pages/Batch/BatchsCreate";
+import BatchAllotedStudents from "./pages/Batch/BatchAllotedStudents";
+import BatchAllotmentSections from "./pages/Batch/BatchAllotmentSections";
+import MessagesList from "./pages/message/MessagesList";
+import MessagesCreate from "./pages/message/MessagesCreate";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -90,7 +94,10 @@ export default function App() {
             <Route path="/batch-list" element={<BatchsList />} />
             <Route path="/batch-create" element={<BatchsCreate/>} />
             <Route path="/batch-edit/:id" element={<BatchsEdit />} />
-            <Route path="/message-list" element={<MessageList />} />
+            <Route path="/batch-allotment/:id" element={<BatchAllotmentSections/>} />
+            <Route path="/batch-alloted-student/:id" element={<BatchAllotedStudents />} />
+            <Route path="/message-list" element={<MessagesList />} />
+            <Route path="/message-create" element={<MessagesCreate />} />
             <Route path="/course-list" element={<CourseLists />} />
             <Route path="/course-create" element={<CoursesCreate />} />
             <Route path="/course-edit/:id" element={<CoursesEdit />} />

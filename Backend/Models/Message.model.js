@@ -12,6 +12,10 @@ const MessageSchema = new mongoose.Schema({
     file_path:{
         type: String,
     },
+    message_file: {
+    type: String,
+    required: true
+},
     batch_id: {
         type: mongoose.Types.ObjectId
     },
