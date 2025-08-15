@@ -52,7 +52,7 @@ const CourseList = () => {
   return (
     <>
       <PageMeta
-        title="Course List | TailAdmin"
+        title="Course List "
         description="This is the course list page in TailAdmin"
       />
       <PageBreadcrumb pageTitle="Course List" />

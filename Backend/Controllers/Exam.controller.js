@@ -21,161 +21,105 @@ const {
 } = require("./../Helpers/smsCalls");
 
 module.exports = {
-  create: async (req, res, next) => {
-    try {
-      upload(req, res, async (err) => {
-        if (err) {
-          return res.status(501).json({ error: err });
-        }
-        const data = req.body;
+ create: async (req, res, next) => {
+  try {
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(501).json({ error: err });
+      }
 
-        console.log(data);
+      const data = req.body;
 
-        const dataExists = await Model.findOne({
-          exam_name: data.exam_name,
-          is_inactive: false,
-        });
-        if (dataExists) {
-          throw createError.Conflict(`${ModelName} already exists`);
-        }
-        const query = {};
-        query.batch = data.batch_id[0];
-        console.log(query.batch);
-        // const batchData = await Batch.findOne({_id: mongoose.Types.ObjectId(data.batch_id)});
-        const students = await User.find({ batch: { $in: [query.batch] } });
-        const batchData = await Batch.findOne({
-          _id: mongoose.Types.ObjectId(query.batch),
-        });
+      console.log("Received exam data:", data);
 
-        const total_no_of_questions = batchData.total_no_of_questions;
-        const percent_of_course_questions =
-          batchData.percent_of_course_questions;
-
-        if (
-          !batchData.total_no_of_questions ||
-          !batchData.percent_of_course_questions
-        ) {
-          res.json({
-            success: false,
-            message: `Please define Question Scheme first in batch!!!`,
-          });
-          return;
-        }
-
-        // console.log(req.query);
-        const percent_of_general_questions = 100 - percent_of_course_questions;
-
-        const no_of_general_questions = Math.floor(
-          (percent_of_general_questions * total_no_of_questions) / 100
-        );
-        console.log(
-          "No. of general questions=>>>>>>>",
-          no_of_general_questions
-        );
-
-        const no_of_course_questions =
-          total_no_of_questions - no_of_general_questions;
-
-        console.log("No. of course questions=>>>>>>>", no_of_course_questions);
-        const courseQuestionsCount = await Question.find({
-          course_name: batchData.course_name,
-          is_inactive: false,
-        }).count();
-        console.log("course questions count", courseQuestionsCount);
-
-        if (courseQuestionsCount < no_of_course_questions) {
-          res.json({
-            success: false,
-            message: `Not enough questions of ${batchData.course_name} course in question bank`,
-          });
-          return;
-        }
-        const generalQuestionsCount = await Question.find({
-          course_type: "General",
-          is_inactive: false,
-        }).count();
-        console.log("general questions Count", generalQuestionsCount);
-
-        // if (generalQuestionsCount < no_of_general_questions) {
-        //   res.json({
-        //     success: false,
-        //     message: `Not enough general questions in question bank`,
-        //   });
-        //   return;
-        // }
-
-        // const students = await User.aggregate([
-        //   {
-        //     $match: query,
-        //   },
-        //   {
-        //     $project: {
-        //       _id: 1
-        //     },
-        //   },
-        //   // {
-        //   //   $sort: sorting,
-        //   // },
-        //   // {
-        //   //   $skip: _skip,
-        //   // },
-        //   // {
-        //   //   $limit: _limit,
-        //   // },
-        // ]);
-        console.log(students.length);
-
-        for (let index = 0; index < students.length; index++) {
-          const element = students[index];
-          // console.log(element._id);
-          // console.log(element.mobile);
-          // console.log(" SMS ATTEMPT CALLED");
-        //   try {
-        //     const smsExamInstr = await smsExamInstruction(
-        //       element.mobile,
-        //       data.exam_date,
-        //       data.exam_time
-        //     );
-
-        //     // console.log("smsAttempt", smsAttempt.data);
-        //   } catch (error) {
-        //     console.log(error);
-        //   }
-
-        //   try {
-        //     const smsAttempt = await sms1stAttempt(
-        //       element.mobile,
-        //       data.exam_date,
-        //       data.exam_time
-        //     );
-
-        //     // console.log("smsAttempt", smsAttempt.data);
-        //   } catch (error) {
-        //     console.log(error);
-        //   }
-        }
-        data.exam_status = "upcoming";
-        data.created_at = Date.now();
-
-        data.is_inactive = false;
-        if (data.course_type == "Special Training Program") {
-          data.exam_attempt = 3;
-        }
-        // data.created_by = req.user._id
-
-        const newData = new Model(data);
-        const result = await newData.save();
-        res.json({
-          success: true,
-          data: newData,
-          message: "Exam Scheduled Successfully!!!",
-        });
-        return;
+      // Check if exam already exists
+      const dataExists = await Model.findOne({
+        exam_name: data.exam_name,
+        is_inactive: false,
       });
-    } catch (error) {
-      next(error);
-    }
-  },
+      if (dataExists) {
+        throw createError.Conflict(`${ModelName} already exists`);
+      }
+
+      // Use first batch ID from array
+      const query = {};
+      query.batch = data.batch_id[0];
+      console.log("Selected batch ID:", query.batch);
+
+      // Get students in that batch
+      const students = await User.find({ batch: { $in: [query.batch] } });
+
+      // Find batch data using ObjectId correctly
+      const batchData = await Batch.findOne({
+        _id: new mongoose.Types.ObjectId(query.batch),
+      });
+
+      const total_no_of_questions = batchData.total_no_of_questions;
+      const percent_of_course_questions = batchData.percent_of_course_questions;
+
+      if (!total_no_of_questions || !percent_of_course_questions) {
+        return res.json({
+          success: false,
+          message: `Please define Question Scheme first in batch!!!`,
+        });
+      }
+
+      const percent_of_general_questions = 100 - percent_of_course_questions;
+
+      const no_of_general_questions = Math.floor(
+        (percent_of_general_questions * total_no_of_questions) / 100
+      );
+
+      const no_of_course_questions = total_no_of_questions - no_of_general_questions;
+
+      // Check course questions availability
+      const courseQuestionsCount = await Question.find({
+        course_name: batchData.course_name,
+        is_inactive: false,
+      }).countDocuments(); // <- FIXED
+
+      if (courseQuestionsCount < no_of_course_questions) {
+        return res.json({
+          success: false,
+          message: `Not enough questions of ${batchData.course_name} course in question bank`,
+        });
+      }
+
+      // Optional: check general questions availability
+      const generalQuestionsCount = await Question.find({
+        course_type: "General",
+        is_inactive: false,
+      }).countDocuments(); // <- FIXED
+
+      console.log("Number of students to notify:", students.length);
+
+      for (let student of students) {
+        // Optional: SMS notifications logic can go here
+      }
+
+      // Prepare exam data
+      data.exam_status = "upcoming";
+      data.created_at = Date.now();
+      data.is_inactive = false;
+
+      if (data.course_type === "Special Training Program") {
+        data.exam_attempt = 3;
+      }
+
+      const newData = new Model(data);
+      await newData.save();
+
+      res.json({
+        success: true,
+        data: newData,
+        message: "Exam Scheduled Successfully!!!",
+      });
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+,
   get: async (req, res, next) => {
     try {
       const { id } = req.params;

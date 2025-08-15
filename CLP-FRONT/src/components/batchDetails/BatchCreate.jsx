@@ -94,7 +94,7 @@ const handleCourseTypeChange = async (e) => {
     </option>
     <option value="Special Training Program">Special Training Program</option>
     <option value="Internship Program">Internship Program</option>
-    <option value="Regular">Regular Courses</option>
+    <option value="Regular Course">Regular Courses</option>
     <option value="E-Learning Course">E-Learning Course</option>
   </select>
   {errors.course_type && (

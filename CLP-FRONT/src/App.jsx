@@ -39,6 +39,7 @@ import BatchAllotedStudents from "./pages/Batch/BatchAllotedStudents";
 import BatchAllotmentSections from "./pages/Batch/BatchAllotmentSections";
 import MessagesList from "./pages/message/MessagesList";
 import MessagesCreate from "./pages/message/MessagesCreate";
+import QuestionBanksCreate from "./pages/Exam/QuestionBanksCreate";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="/user-management" element={<UsersManagementList />} />
             <Route path="/exam-list" element={<ExamsList />} />
             <Route path="/question-bank-list" element={<QuestionBanksList />} />
+            <Route path="/question-bank-create" element={<QuestionBanksCreate />} />
             <Route path="/bulk-upload-list" element={<BulkUploadsList />} />
             <Route path="/schedule-exam-list" element={<ScheduleExamsList />} />
             <Route path="/profile" element={<UserProfiles />} />
