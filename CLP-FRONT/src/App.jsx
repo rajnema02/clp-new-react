@@ -8,12 +8,12 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import BatchData from "./pages/Batch/BatchsList";
+
 import CourseLists from "./pages/course/CourseLists";
 import ModulesList from "./pages/course/ModulesList";
-import MessageList from "./pages/message/MessagesList";
+
 import ScheduleExamsList from "./pages/Exam/ScheduleExamsList";
-import BulkUploadsList from "./pages/Exam/BulkUploadsList";
+
 import QuestionBanksList from "./pages/Exam/QuestionBanksList";
 import ExamsList from "./pages/Exam/ExamsList";
 import UsersManagementList from "./pages/userManagement/UsersManagementList";
@@ -40,6 +40,8 @@ import BatchAllotmentSections from "./pages/Batch/BatchAllotmentSections";
 import MessagesList from "./pages/message/MessagesList";
 import MessagesCreate from "./pages/message/MessagesCreate";
 import QuestionBanksCreate from "./pages/Exam/QuestionBanksCreate";
+import BulkUploads from "./pages/Exam/BulkUploads";
+import QuestionBanksEdit from "./pages/Exam/QuestionBanksEdit";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -108,7 +110,8 @@ export default function App() {
             <Route path="/exam-list" element={<ExamsList />} />
             <Route path="/question-bank-list" element={<QuestionBanksList />} />
             <Route path="/question-bank-create" element={<QuestionBanksCreate />} />
-            <Route path="/bulk-upload-list" element={<BulkUploadsList />} />
+            <Route path="/question-bank-edit/:id" element={<QuestionBanksEdit />} />
+            <Route path="/bulk-upload-list" element={<BulkUploads/>} />
             <Route path="/schedule-exam-list" element={<ScheduleExamsList />} />
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/blank" element={<Blank />} />

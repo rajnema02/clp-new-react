@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import apiService from "../../Services/api.service";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
-const QuestionBankCreate = () => {
+const QuestionBankEdit = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [courseList, setCourseList] = useState([]);
@@ -27,26 +28,44 @@ const QuestionBankCreate = () => {
     marks: "",
   });
 
+  // Fetch existing question data
   useEffect(() => {
-    if (courseType === "General") {
-      setNotGeneral(false);
-      setCourseList([]);
-    } else if (courseType) {
-      setNotGeneral(true);
-      apiService
-        .get("/course", { params: { course_type: courseType } })
-        .then((resp) => {
-          setCourseList(resp.data.data || []);
-        })
-        .catch((err) => console.error("Error fetching courses:", err));
-    }
-  }, [courseType]);
+    apiService
+      .get(`/question/${id}`)
+      .then((resp) => {
+        const data = resp.data;
+        setFormData(data);
+        setCourseType(data.course_type);
+        setFourOption(data.number_of_options === "4");
+        setNotGeneral(data.course_type !== "General");
+
+        // If course type is not General, fetch course list
+        if (data.course_type !== "General") {
+          apiService
+            .get("/course", { params: { course_type: data.course_type } })
+            .then((resp) => setCourseList(resp.data.data || []));
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "course_type") setCourseType(value);
+    if (name === "course_type") {
+      setCourseType(value);
+      setNotGeneral(value !== "General");
+
+      if (value !== "General") {
+        apiService
+          .get("/course", { params: { course_type: value } })
+          .then((resp) => setCourseList(resp.data.data || []));
+      } else {
+        setCourseList([]);
+      }
+    }
+
     if (name === "number_of_options") setFourOption(value === "4");
   };
 
@@ -57,7 +76,7 @@ const QuestionBankCreate = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     apiService
-      .post("/question", formData)
+      .put(`/question/${id}`, formData)
       .then(() => navigate("/question-bank-list"))
       .catch((err) => console.error(err));
   };
@@ -65,7 +84,7 @@ const QuestionBankCreate = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Question</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Question</h2>
         <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Course Type */}
           <div>
@@ -246,7 +265,7 @@ const QuestionBankCreate = () => {
               type="submit"
               className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow hover:bg-indigo-700 transition"
             >
-              Create Question
+              Update Question
             </button>
           </div>
         </form>
@@ -255,4 +274,4 @@ const QuestionBankCreate = () => {
   );
 };
 
-export default QuestionBankCreate;
+export default QuestionBankEdit;

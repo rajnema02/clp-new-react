@@ -1,95 +1,91 @@
 const router = require("express").Router();
-const { verifyAccessToken } = require("../Helpers/jwt_helper");
-const QuestionController = require("../Controllers/QuestionFile.controller");
-const multer = require("multer");
 const path = require("path");
-const bodyParser = require("body-parser");
-const express = require("express");
-const upload = multer({ dest: "uploads/" });
+const fs = require("fs");
+const multer = require("multer");
+const XLSX = require("xlsx");
 const QuestionModel = require("../Models/Question.model");
 const DepartmentModel = require("../Models/Department.model");
-const XLSX = require('xlsx');
 
-router.post("/uploadBulkQuestions", upload.single("file"), (req, res) => {
-    try {
-  // The uploaded file is available at req.file.path
-  const filePath = req.file.path;
-  const fileData = JSON.parse(req.body.data);
-// console.log(fileData);
+// ================= Multer Storage Setup =================
+function createStorage(subfolder) {
+  const uploadDir = path.join(__dirname, `../uploads/${subfolder}`);
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
-  // Pass the file path to the Excel parsing logic
-  // Handle parsing and saving to MongoDB here
-  // Read the Excel file
-  const workbook = XLSX.readFile(filePath);
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  });
+}
 
-  // Extract the first worksheet from the workbook
-  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+// Allow only .xlsx
+function fileFilter(req, file, cb) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext === ".xlsx") {
+    cb(null, true);
+  } else {
+    cb(new Error("Only .xlsx files are allowed"), false);
+  }
+}
 
-  // Convert the worksheet data to JSON format
-  const jsonData = XLSX.utils.sheet_to_json(worksheet);
- // console.log(jsonData);
- for(let data of jsonData){
-   data.created_at= Date.now();
-   data.course_type= fileData.course_type;
-   data.course_name = fileData.course_name;
+// Multer uploaders
+const uploadQuestions = multer({ storage: createStorage("question"), fileFilter });
+const uploadDepartments = multer({ storage: createStorage("department"), fileFilter });
 
- }
-  // console.log(jsonData);
-  QuestionModel.insertMany(jsonData)
-    .then(() => {
-      res.status(200).json({ message: "Data imported successfully." });
-    })
-    .catch((error) => {
-        console.log(error);
-      res.status(500).json({ error: "An error occured" });
-    });
-    } catch (e) {
-        console.log(e);
-        throw e;
-    }
+// ================= Bulk Upload Questions =================
+router.post("/uploadBulkQuestions", uploadQuestions.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const { course_type, course_name } = req.body;
+
+    const workbook = XLSX.readFile(req.file.path);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    let jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    // Normalize and ensure required fields
+    jsonData = jsonData.map((data) => ({
+      ...data,
+      created_at: new Date(),
+      course_type,
+      course_name,
+      marks: data.marks != null && data.marks !== "" ? Number(data.marks) : 0 // Default to 0 if missing
+    }));
+
+    await QuestionModel.insertMany(jsonData);
+
+    res.status(200).json({ message: "Questions imported successfully" });
+  } catch (error) {
+    console.error("Bulk upload error:", error);
+    res.status(500).json({ error: error.message || "An error occurred while importing questions" });
+  }
 });
 
+// ================= Bulk Upload Departments =================
+router.post("/uploadBulkDepartment", uploadDepartments.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-router.post("/uploadBulkDepartment", upload.single("file"), (req, res) => {
-  // The uploaded file is available at req.file.path
-  const filePath = req.file.path;
-//   const fileData = JSON.parse(req.body.data);
-// console.log(fileData);
+    const workbook = XLSX.readFile(req.file.path);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet).map((data) => ({
+      ...data,
+      created_at: new Date(),
+    }));
 
-  // Pass the file path to the Excel parsing logic
-  // Handle parsing and saving to MongoDB here
-  // Read the Excel file
-  const workbook = XLSX.readFile(filePath);
+    await DepartmentModel.insertMany(jsonData);
 
-  // Extract the first worksheet from the workbook
-  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-  // Convert the worksheet data to JSON format
-  const jsonData = XLSX.utils.sheet_to_json(worksheet);
- console.log(jsonData);
- for(let data of jsonData){
-   data.created_at= Date.now();   
- }
-  DepartmentModel.insertMany(jsonData)
-    .then(() => {
-      res.status(200).json({ message: "Data imported successfully." });
-    })
-    .catch((error) => {
-      res.status(500).json({ error: "An error occured" });
-    });
+    res.status(200).json({ message: "Departments imported successfully" });
+  } catch (error) {
+    console.error("Bulk upload error:", error);
+    res.status(500).json({ error: error.message || "An error occurred while importing departments" });
+  }
 });
-router.use(bodyParser.urlencoded({ extended: true }));
-router.use(express.static(path.resolve(__dirname, "public")));
-
-var storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "./public/uploads");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file, originalName);
-  },
-});
-
-// router.post("/importQuestions", upload.single("file"), QuestionController.importQuestions);
 
 module.exports = router;
