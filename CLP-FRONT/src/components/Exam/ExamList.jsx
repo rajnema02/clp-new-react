@@ -123,7 +123,7 @@ const ExamList = () => {
                                   : "bg-red-400"
                               }`}
                             >
-                              {exam.exam_status.toUpperCase()}
+                              {exam.exam_status}
                             </span>
                           </TableCell>
                           <TableCell className="px-5 py-4">
