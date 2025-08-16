@@ -33,7 +33,7 @@ export default function LogInForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!authid.trim() || !password.trim()) {
       toast.error("Please fill in all fields", {
         position: "top-center",
@@ -51,8 +51,19 @@ export default function LogInForm() {
         remember: isChecked
       };
 
-      await login(credentials, false);
-      
+      const userData = await login(credentials, false);
+      console.log("✅ Login response:", userData);
+
+      // ✅ Consistently store user ID as 'userId'
+      const userId = userData?.studentId || userData?.id || userData?.user?.id;
+
+      if (userId) {
+        localStorage.setItem("userId", userId); // ✅ Fixed here
+        console.log("✅ Stored userId in localStorage:", userId);
+      } else {
+        console.warn("❌ userId not found in login response");
+      }
+
       toast.success("Login successful! Redirecting...", {
         position: "top-center",
         autoClose: 1000,
@@ -65,9 +76,9 @@ export default function LogInForm() {
 
     } catch (error) {
       console.error("Login error:", error);
-      
+
       let errorMessage = "Login failed. Please try again.";
-      
+
       if (error.response) {
         if (error.response.status === 401) {
           errorMessage = "Invalid credentials. Please check your email/mobile and password.";

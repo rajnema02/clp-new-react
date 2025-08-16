@@ -313,7 +313,7 @@ module.exports = {
     try {
       const user_id = req.params.id;
       const student = await User.findOne({
-        _id: mongoose.Types.ObjectId(user_id),
+        _id: new mongoose.Types.ObjectId(user_id),
       });
       if (student.batch) {
         const bId = student.batch;

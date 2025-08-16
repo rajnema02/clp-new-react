@@ -5,7 +5,7 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import apiService from "../../Services/api.service";
 
 export default function SignUpForm() {
@@ -33,7 +33,6 @@ export default function SignUpForm() {
 
     if (!isChecked) {
       const msg = "Please agree to the terms and conditions";
-      alert(msg);
       toast.error(msg);
       return;
     }
@@ -41,30 +40,29 @@ export default function SignUpForm() {
     setLoading(true);
 
     try {
-      const response = await apiService.post('user/usersignup', formData);
+      const response = await apiService.post("user/usersignup", formData);
+      const userData = response.data.user;
 
       localStorage.setItem("accessToken", response.data.token);
       localStorage.setItem("refreshToken", response.data.refreshToken);
       localStorage.setItem("user", JSON.stringify({
-        id: response.data.id,
-        full_name: response.data.full_name,
-        email: response.data.email,
-        mobile: response.data.mobile,
-        role: response.data.role
-      }));a
-      // In UserLogInForm.jsx
-localStorage.setItem("user", JSON.stringify(response.data.user));
-localStorage.removeItem("admin"); // Clear any admin data
+        id: userData._id,
+        full_name: userData.full_name,
+        email: userData.email,
+        mobile: userData.mobile,
+        role: userData.role
+      }));
 
-      alert("Account created successfully!");
+      localStorage.setItem("studentId", userData._id);
+      localStorage.removeItem("admin");
+
       toast.success("Account created successfully!");
       setTimeout(() => navigate("/login"), 1500);
-
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 
-        error.response?.data?.error || 
+      const errorMsg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
         "Registration failed. Please try again.";
-      alert(errorMsg);
       toast.error(errorMsg);
     } finally {
       setLoading(false);
@@ -155,7 +153,10 @@ localStorage.removeItem("admin"); // Clear any admin data
             </div>
 
             <div className="flex items-center gap-3">
-              <Checkbox checked={isChecked} onChange={setIsChecked} />
+              <Checkbox
+                checked={isChecked}
+                onChange={() => setIsChecked(!isChecked)}
+              />
               <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
                 I agree to the{" "}
                 <span className="text-gray-800 dark:text-white/90">
@@ -169,10 +170,10 @@ localStorage.removeItem("admin"); // Clear any admin data
             </div>
 
             <div>
-              <Button 
-                className="w-full" 
-                size="sm" 
-                type="submit" 
+              <Button
+                className="w-full"
+                size="sm"
+                type="submit"
                 disabled={loading}
               >
                 {loading ? "Creating account..." : "Create Account"}
