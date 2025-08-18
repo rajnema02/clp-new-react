@@ -1,23 +1,12 @@
-const express = require("express");
-const _router = express.Router();
-const FileController = require('../Controllers/Files.controller')
-const { verifyAccessToken } = require('../Helpers/jwt_helper')
+const express = require('express');
+const router = express.Router();
+const fileController = require('../Controllers/Files.controller');
+const upload = require('../Helpers/multer'); // Your multer configuration
 
-_router.post("/upload",  FileController.upload);
+// File upload routes
+router.post('/upload', upload.single('file'), fileController.uploadFile);
+router.post('/uploadDocument/:studentId', upload.single('file'), fileController.uploadDocument);
+router.post('/uploadS3File', upload.single('file'), fileController.uploadS3File);
+router.get('/list/:userId', fileController.listFiles);
 
-_router.post("/upload-face", verifyAccessToken, FileController.face_upload);
-
-_router.post("/upload-attendance", verifyAccessToken, FileController.attendance_upload);
-
-_router.get("/face/download/:filename", FileController.faceDownload);
-
-_router.get("/attendance/download/:filename", FileController.attendanceDownload);
-
-_router.get("/download/:filename", FileController.download);
-
-_router.get("/download/:folder1/:folder2/:folder3/:filename", FileController.download);
-
-_router.get("/download/:folder/:filename", FileController.folderDownload);
-
-
-module.exports = _router;
+module.exports = router;

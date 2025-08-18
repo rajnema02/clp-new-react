@@ -22,7 +22,7 @@ import StudentsCertificate from "./student-pages/studentsProfile/StudentsCertifi
 import StudentsAboutProgram from "./student-pages/studentAboutProgram/StudentsAboutProgram";
 import StudentsDemoExam from "./student-pages/studentExam/StudentsDemoExam";
 import StudentsExamList from "./student-pages/studentExam/StudentsExamList";
-import StudentsRegistrationList from "./student-pages/studentRegistration/StudentsRegistrationList";
+import StudentsRegistrationList from "./student-pages/studentRegistration/StudentsRegistrationsList";
 import StudentsMessages from "./student-pages/studentMessages/StudentsMessages";
 import StudentsVideoLibrary from "./student-pages/studentsVideoLibrary/StudentsVideoLibrary";
 import LogIn from "./pages/AuthPages/LogIn";
@@ -42,6 +42,12 @@ import MessagesCreate from "./pages/message/MessagesCreate";
 import QuestionBanksCreate from "./pages/Exam/QuestionBanksCreate";
 import BulkUploads from "./pages/Exam/BulkUploads";
 import QuestionBanksEdit from "./pages/Exam/QuestionBanksEdit";
+import StudentRegistrationsForm from "./student-pages/studentRegistration/StudentRegistrationsForm";
+import StudentsRegistrationsList from "./student-pages/studentRegistration/StudentsRegistrationsList";
+import AboutProgramsList from "./pages/AboutProgram/AboutProgramsList";
+import AboutProgramsCreate from "./pages/AboutProgram/AboutProgramsCreate";
+import DepartmentsList from "./pages/department/DepartmentsList";
+import DepartmentsCreate from "./pages/department/DepartmentsCreate";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -117,6 +123,10 @@ export default function App() {
             <Route path="/blank" element={<Blank />} />
             <Route path="/form-elements" element={<FormElements />} />
             <Route path="/basic-tables" element={<BasicTables />} />
+            <Route path="/about-program-create" element={<AboutProgramsCreate/>} />
+            <Route path="/about-program-list" element={<AboutProgramsList />} />
+            <Route path="/department-list" element={<DepartmentsList/>} />
+            <Route path="/department-create" element={<DepartmentsCreate />} />
           </Route>
 
           {/* Protected Student Routes */}
@@ -131,7 +141,8 @@ export default function App() {
             <Route path="/student-about-program" element={<StudentsAboutProgram />} />
             <Route path="/student-demo-exam" element={<StudentsDemoExam />} />
             <Route path="/student-exam-list" element={<StudentsExamList />} />
-            <Route path="/student-registration" element={<StudentsRegistrationList />} />
+            <Route path="/student-registration-list" element={<StudentsRegistrationsList/>} />
+            <Route path="/student-registration-form" element={<StudentRegistrationsForm />} />
             <Route path="/student-message" element={<StudentsMessages />} />
             <Route path="/student-video-library" element={<StudentsVideoLibrary />} />
           </Route>

@@ -1,8 +1,13 @@
 const router = require('express').Router()
 const Controller = require('../Controllers/AboutProgram.controller')
 const { verifyAccessToken } = require('../Helpers/jwt_helper')
+const {uploadFile }  = require("../Helpers/Upload")
 
-router.post('/', verifyAccessToken, Controller.create)
+const upload = uploadFile("about-program", [".pdf", ".doc", ".docx", ".txt"]);
+
+// Create a new About Program entry with file upload
+router.post("/", upload.single("file"), Controller.create);
+
 
 router.get('/count', verifyAccessToken, Controller.count)
 

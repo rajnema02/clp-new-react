@@ -214,7 +214,7 @@ module.exports = {
       if (!id) {
         throw createError.BadRequest("Invalid Parameters");
       }
-      const result = await Model.findOne({ _id: mongoose.Types.ObjectId(id) });
+      const result = await Model.findOne({ _id: new mongoose.Types.ObjectId(id) });
       if (!result) {
         throw createError.NotFound(`No ${ModelName} Found`);
       }
@@ -537,61 +537,80 @@ module.exports = {
     }
   },
   update: async (req, res, next) => {
-    try {
-      const { id } = req.params;
+  try {
+    const { id } = req.params;
+    const data = req.body;
 
-      const data = req.body;
-      console.log("updateupdateupdateupdateupdateupdateupdateupdate!!!!!!", data);
-      if (!id) {
-        throw createError.BadRequest("Invalid Parameters");
-      }
-      if (!data) {
-        throw createError.BadRequest("Invalid Parameters");
-      }
-      data.is_profileRejected = false;
-      data.updated_at = Date.now();
-      // if (data.transaction_id) {
-      //   data.transaction_at = Date.now();
-      // }
-      const result = await Model.findByIdAndUpdate(
-        { _id: mongoose.Types.ObjectId(id) },
-        { $set: data }
-      );
-      console.log("UUUSSEER RESULT", result);
-      if (result.mobile && data.is_profileVerified) {
-        try {
-          const smsProfileVerfy = await smsProfileVerfied(result.mobile);
-          console.log("smsProfileVerfy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", smsProfileVerfy.data);
-        } catch (error) {
-          console.log(error)
-        }
-        try {
-          const smsOnlineClass = await smsOnlineClassInstruction(result.mobile);
-
-        } catch (error) {
-
-        }
-        try {
-          const smsOnlineInstruction = await smsTeamsInstruction(result.mobile);
-
-        } catch (error) {
-
-        }
-        // console.log("smsProfileVerfied,smsFormAccept ", smsProfileVerfy.data);
-      }
-      if (result.mobile && data.formStatus) {
-        console.log(data.formStatus);
-        console.log("FORM SMS CALLED");
-        const smsFromFilled = await smsFormFilled(result.mobile);
-
-        console.log("smsReject", smsFromFilled.data);
-      }
-      res.json(result);
-      return;
-    } catch (error) {
-      next(error);
+    // Validate input
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw createError.BadRequest("Invalid user ID");
     }
-  },
+
+    if (!data || typeof data !== 'object') {
+      throw createError.BadRequest("Invalid request body");
+    }
+
+    // Prepare update data
+    const updateData = {
+      ...data,
+      updated_at: Date.now()
+    };
+
+    // Handle profile rejection
+    if (data.is_profileVerified) {
+      updateData.is_profileRejected = false;
+    }
+
+    // Handle transaction timestamp if transaction ID is provided
+    if (data.transaction_id) {
+      updateData.transaction_at = Date.now();
+    }
+
+    // Update user in database
+    const result = await Model.findByIdAndUpdate(
+      { _id: id },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!result) {
+      throw createError.NotFound("User not found");
+    }
+
+    // Send SMS notifications based on updates
+    if (result.mobile) {
+      try {
+        // Profile verification SMS
+        if (data.is_profileVerified) {
+          await Promise.all([
+            smsProfileVerfied(result.mobile),
+            smsOnlineClassInstruction(result.mobile),
+            smsTeamsInstruction(result.mobile)
+          ]);
+        }
+
+        // Form submission SMS
+        if (data.formStatus === 'true') {
+          await smsFormFilled(result.mobile);
+        }
+      } catch (smsError) {
+        console.error('SMS sending failed:', smsError);
+        // Continue even if SMS fails - don't fail the whole request
+      }
+    }
+
+    // Return updated user data
+    res.json({
+      success: true,
+      data: result,
+      message: 'User updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error in user update:', error);
+    next(error);
+  }
+},
   updateReject: async (req, res, next) => {
     try {
       const { id } = req.params;

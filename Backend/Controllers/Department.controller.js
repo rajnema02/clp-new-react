@@ -6,29 +6,40 @@ const { upload } = require('../Helpers/helper_functions')
 
 module.exports = {
     create: async (req, res, next) => {
-        try {
-            upload(req, res, async (err) => {
-                if (err) {
-                    return res.status(501).json({ error: err })
-                }
-                const data = req.body
-                console.log(data);
-                
-                const dataExists = await Model.findOne({ name: data.name, is_inactive: false })
-                if (dataExists) {
-                    throw createError.Conflict(`${ModelName} already exists`)
-                }
-                data.created_at = Date.now()
-                // data.created_by = req.user._id
-                const newData = new Model(data)
-                const result = await newData.save()
-                res.json(newData)
-                return
-            })
-        } catch (error) {
-            next(error)
-        }
-    },
+    try {
+        upload(req, res, async (err) => {
+            if (err) {
+                return res.status(501).json({ error: err });
+            }
+
+            const data = req.body;
+            console.log(data);
+
+            // Ensure ObjectId is used correctly
+            const { Types } = require('mongoose');
+
+            const dataExists = await Model.findOne({ name: data.name, is_inactive: false });
+            if (dataExists) {
+                throw createError.Conflict(`${ModelName} already exists`);
+            }
+
+            data.created_at = Date.now();
+            
+            if (data.created_by && Types.ObjectId.isValid(data.created_by)) {
+                data.created_by = new Types.ObjectId(data.created_by);
+            }
+
+            const newData = new Model(data);
+            const result = await newData.save();
+            res.json(newData);
+            return;
+        });
+    } catch (error) {
+        next(error);
+    }
+},
+
+
    
     get: async (req, res, next) => {
         try {
@@ -36,7 +47,8 @@ module.exports = {
             if (!id) {
                 throw createError.BadRequest('Invalid Parameters')
             }
-            const result = await Model.findOne({ _id: mongoose.Types.ObjectId(id) })
+            const result = await Model.findOne({ _id: new
+                 mongoose.Types.ObjectId(id) })
             if (!result) {
                 throw createError.NotFound(`No ${ModelName} Found`)
             }
@@ -161,7 +173,7 @@ module.exports = {
                     throw createError.BadRequest('Invalid Parameters')
                 }
                 data.updated_at = Date.now()
-                const result = await Model.updateOne({ _id: mongoose.Types.ObjectId(id) }, { $set: data })
+                const result = await Model.updateOne({ _id:new  mongoose.Types.ObjectId(id) }, { $set: data })
                 res.json(result)
                 return
             })
@@ -188,26 +200,40 @@ module.exports = {
         }
     },
     delete: async (req, res, next) => {
-        try {
-            const { id } = req.params
-            if (!id) {
-                throw createError.BadRequest('Invalid Parameters')
-            }
-            const deleted_at = Date.now()
-            const result = await Model.updateOne({ _id: mongoose.Types.ObjectId(id) }, { $set: { is_inactive: true, deleted_at } })
-            res.json(result)
-            return
-        } catch (error) {
-            next(error)
-        }
-    },
+    try {
+      const { id } = req.params;
+
+      // ✅ Validate ObjectId
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(createError.BadRequest("Invalid ID format"));
+      }
+
+      // ✅ Find document
+      const document = await Model.findById(id);
+      if (!document || document.is_inactive) {
+        return next(createError.NotFound(`${ModelName} not found`));
+      }
+
+      // ✅ Soft delete
+      document.is_inactive = true;
+      document.deleted_at = new Date();
+      await document.save();
+
+      return res.status(200).json({
+        message: `${ModelName} deleted successfully`,
+      });
+    } catch (error) {
+      console.error(`❌ Error deleting ${ModelName}:`, error);
+      return next(createError(500, "Internal Server Error"));
+    }
+  },
     restore: async (req, res, next) => {
         try {
             const { id } = req.params
             if (!id) {
                 throw createError.BadRequest('Invalid Parameters')
             }
-            const dataToBeDeleted = await Model.findOne({ _id: mongoose.Types.ObjectId(id) }, { name: 1 })
+            const dataToBeDeleted = await Model.findOne({ _id: new mongoose.Types.ObjectId(id) }, { name: 1 })
             if (!dataToBeDeleted) {
                 throw createError.NotFound(`${ModelName} Not Found`)
             }
@@ -216,7 +242,7 @@ module.exports = {
                 throw createError.Conflict(`${ModelName} already exists`)
             }
             const restored_at = Date.now()
-            const result = await Model.updateOne({ _id: mongoose.Types.ObjectId(id) }, { $set: { is_inactive: false, restored_at } })
+            const result = await Model.updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $set: { is_inactive: false, restored_at } })
             res.json(result)
             return
         } catch (error) {

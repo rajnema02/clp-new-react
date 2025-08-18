@@ -2,7 +2,7 @@ import React from 'react'
 import StudentAbourProgram from '../../components/StudentAboutProgram/StudentAboutProgram'
 import StudentRegistrationList from '../../components/studentRegistration/StudentRegistrationList'
 
-const StudentsRegistrationList = () => {
+const StudentsRegistrationsList = () => {
   return (
     <div>
       <StudentRegistrationList/>
@@ -10,4 +10,4 @@ const StudentsRegistrationList = () => {
   )
 }
 
-export default StudentsRegistrationList
+export default StudentsRegistrationsList

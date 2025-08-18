@@ -5,29 +5,28 @@ const ModelName = 'Program'
 const { upload } = require('../Helpers/helper_functions')
 
 module.exports = {
-    create: async (req, res, next) => {
-        try {
-            upload(req, res, async (err) => {
-                if (err) {
-                    return res.status(501).json({ error: err })
-                }
-                const data = req.body
-                console.log(data);
-                const dataExists = await Model.findOne({ title: data.title, is_inactive: false })
-                if (dataExists) {
-                    throw createError.Conflict(`${ModelName} already exists`)
-                }
-                data.created_at = Date.now()
-                data.created_by = req.user._id
-                const newData = new Model(data)
-                const result = await newData.save()
-                res.json(newData)
-                return
-            })
-        } catch (error) {
-            next(error)
-        }
-    },
+    create:  async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!req.body.title || req.body.title.trim() === "")
+      return res.status(400).json({ error: "Title is required" });
+
+    const { title } = req.body;
+    const filePath = `/uploads/about-program/${req.file.filename}`;
+
+    const newAboutProgram = new Model({
+      title,
+      file: filePath,
+      created_at: new Date(),
+    });
+
+    await newAboutProgram.save();
+    res.status(201).json(newAboutProgram);
+  } catch (err) {
+    console.error("Error in controller:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+},
     get: async (req, res, next) => {
         try {
             const { id } = req.params

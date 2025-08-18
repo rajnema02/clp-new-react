@@ -46,6 +46,7 @@ const loadRoute = (path, routePath) => {
     }
   }
 };
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes Start ------
 app.use('/auth', require('./Routes/Auth.route'))

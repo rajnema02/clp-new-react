@@ -28,6 +28,8 @@ const adminNavItems = [
     name: "Batch Details",
     path: "/batch-list",
   },
+
+  
   {
     icon: <UserCircleIcon />,
     name: "Messages",
@@ -39,6 +41,16 @@ const adminNavItems = [
     subItems: [
       { name: "Course list", path: "/course-list", pro: false },
       { name: "Module", path: "/module-list", pro: false }
+    ],
+  },
+
+  {
+    name: "Master",
+    icon: <TableIcon />,
+    subItems: [
+      { name: "About Program", path: "/about-program-list", pro: false },
+      { name: "Department", path: "/department-list", pro: false },
+
     ],
   },
   {
@@ -73,6 +85,11 @@ const studentNavItems = [
     icon: <UserCircleIcon />,
     name: "Student Profile",
     path: "/student-profile-form",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Registration Form",
+    path: "/student-registration-form",
   },
   {
     icon: <UserCircleIcon />,

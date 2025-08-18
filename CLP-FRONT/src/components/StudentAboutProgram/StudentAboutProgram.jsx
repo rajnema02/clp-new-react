@@ -1,92 +1,62 @@
-import React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../ui/table/index";
-import Button from "../ui/button/Button";
-import PageBreadcrumb from "../common/PageBreadCrumb";
-import ComponentCard from "../common/ComponentCard";
-import PageMeta from "../common/PageMeta";
-
-// Dummy data for program details
-const programData = [
-  {
-    id: 1,
-    detail: "Course Overview Document",
-    linkLabel: "View PDF",
-    linkUrl: "#",
-  },
-  {
-    id: 2,
-    detail: "Curriculum Structure",
-    linkLabel: "Download",
-    linkUrl: "#",
-  },
-  {
-    id: 3,
-    detail: "Orientation Video",
-    linkLabel: "Watch",
-    linkUrl: "#",
-  },
-];
+import React, { useEffect, useState } from "react";
+import apiService from "../../Services/api.service";
 
 const StudentAboutProgram = () => {
+  const [programs, setPrograms] = useState([]);
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const res = await apiService.get("/about-program");
+
+        // Check if res.data is an array or object containing array
+        if (Array.isArray(res.data)) {
+          setPrograms(res.data);
+        } else if (Array.isArray(res.data?.data)) {
+          setPrograms(res.data.data);
+        } else {
+          console.error("Unexpected API response format:", res.data);
+          setPrograms([]);
+        }
+      } catch (err) {
+        console.error("Error fetching programs:", err);
+        setPrograms([]);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
   return (
-    <>
-      <PageMeta
-        title="About Program | Student Panel"
-        description="This section contains program-related resources and links."
-      />
-
-      <PageBreadcrumb pageTitle="About Program" />
-
-      <div className="space-y-6">
-        <ComponentCard title="Program Details">
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-x-auto">
-              <Table>
-                {/* Table Header */}
-                <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-                  <TableRow>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400"
-                    >
-                      Details
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400"
-                    >
-                      Links
-                    </TableCell>
-                  </TableRow>
-                </TableHeader>
-
-                {/* Table Body */}
-                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {programData.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90">
-                        {item.detail}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 text-theme-sm text-blue-600 underline">
-                        <a href={item.linkUrl} target="_blank" rel="noopener noreferrer">
-                          {item.linkLabel}
-                        </a>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </ComponentCard>
-      </div>
-    </>
+    <div className="max-w-4xl mx-auto p-6 mt-10 bg-white shadow-lg rounded-2xl">
+      <h2 className="text-2xl font-bold mb-6 text-center">About Programs</h2>
+      {programs.length === 0 ? (
+        <p className="text-center text-gray-500">No programs available.</p>
+      ) : (
+        <ul className="space-y-4">
+          {programs.map((program) => (
+            <li
+              key={program._id}
+              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-lg text-gray-800">
+                  {program.title}
+                </span>
+                <a
+                  href={`http://localhost:3000/uploads/about-programs/${program.file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  View File
+                </a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 
