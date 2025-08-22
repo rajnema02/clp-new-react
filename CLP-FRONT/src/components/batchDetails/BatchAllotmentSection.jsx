@@ -60,6 +60,7 @@ const BatchAllotmentSection = () => {
   const allotToBatch = async () => {
     if (!window.confirm("Are you Sure !!!")) return;
     try {
+      // Fixed: Pass the data as the request body, not as part of the URL
       const data = { batch: selectedStudent };
       const resp = await apiService.put(`/user/batch/${id}`, data);
       if (resp) {

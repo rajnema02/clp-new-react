@@ -149,7 +149,7 @@ module.exports = {
         // console.log('???????????????', data);
         // return
         try {
-          const user = await preUser.findOne({ _id: mongoose.Types.ObjectId(data.userId) })
+          const user = await preUser.findOne({ _id: new mongoose.Types.ObjectId(data.userId) })
           // console.log('>>>>>>>>>>', user);
           // return
           let newUserData = {}
@@ -303,7 +303,7 @@ module.exports = {
         query.role = new RegExp(role, "i");
       }
       if (batch) {
-        query.batch = mongoose.Types.ObjectId(batch);
+        query.batch = new mongoose.Types.ObjectId(batch);
       }
       if (is_profileVerified != undefined) {
         query.is_profileVerified = is_profileVerified == "true" ? true : false;
@@ -321,7 +321,7 @@ module.exports = {
       //     query.topUser = req.user._id
       // } else
       if (topUser) {
-        query.topUser = mongoose.Types.ObjectId(topUser);
+        query.topUser = new mongoose.Types.ObjectId(topUser);
       }
       query.disabled = disabled && disabled == "true" ? true : false;
       query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
@@ -455,7 +455,7 @@ module.exports = {
       //     query.topUser = req.user._id
       // } else
       if (topUser) {
-        query.topUser = mongoose.Types.ObjectId(topUser);
+        query.topUser = new mongoose.Types.ObjectId(topUser);
       }
       query.disabled = disabled && disabled == "true" ? true : false;
       query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
@@ -522,10 +522,10 @@ module.exports = {
         query.mobile = new RegExp(mobile, "i");
       }
       if (role) {
-        query.role = mongoose.Types.ObjectId(role);
+        query.role = new mongoose.Types.ObjectId(role);
       }
       if (topUser) {
-        query.topUser = mongoose.Types.ObjectId(topUser);
+        query.topUser = new mongoose.Types.ObjectId(topUser);
       }
       query.disabled = disabled && disabled == "true" ? true : false;
       query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
@@ -629,7 +629,7 @@ module.exports = {
         data.transaction_at = Date.now();
       }
       const result = await Model.findByIdAndUpdate(
-        { _id: mongoose.Types.ObjectId(id) },
+        { _id: new mongoose.Types.ObjectId(id) },
         { $set: data }
       );
       if (result.mobile) {
@@ -645,69 +645,118 @@ module.exports = {
       next(error);
     }
   },
-  updateBatch: async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      try {
-        if (!id) {
-          throw createError.BadRequest("id Invalid Parameters");
+ updateBatch: async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          message: "id Invalid Parameters"
         }
-        const data = {
-          batch: mongoose.Types.ObjectId(id),
-        };
-        console.log("DDDAAATATA", data);
-        if (!data) {
-          throw createError.BadRequest("data Invalid Parameters");
-        }
-        const ids = req.body.batch;
-        console.log(req.body.batch);
-        if (!ids) {
-          throw createError.BadRequest("ids Invalid Parameters");
-        }
-        if (!ids.length) {
-          throw createError.BadRequest("ids Invalid Parameters");
-        }
-        const batchData = await BatchModel.findOne({ _id: mongoose.Types.ObjectId(id) })
-        console.log(batchData);
-
-        for (const stdId of ids) {
-          const result = await Model.findOne({ _id: mongoose.Types.ObjectId(stdId) }, { mobile: 1 })
-          // try {
-          //   const smsBatch = await smsOnlineClass(result.mobile, batchData.startDate, batchData.endDate);
-
-          //   // console.log("smsBatch", smsBatch.data);
-
-          // } catch (error) {
-          //   console.log(error);
-          // }
-
-        }
-        const matchQueries = {
-          _id: {
-            $in: ids.map((o) => mongoose.Types.ObjectId(o)),
-          },
-        };
-        const updateQueries = {
-          $set: data,
-        };
-        console.log(matchQueries, updateQueries);
-        const result = await Model.updateMany(matchQueries, updateQueries);
-        res.json(result);
-        return;
-      } catch (error) {
-        // next(error)
-        if (error.isJoi === true) error.status = 422;
-        return res.status(error.status).send({
-          error: {
-            status: error.status || 500,
-            message: error.message,
-          },
-        });
-      }
-    } catch (error) {
-      next(error);
+      });
     }
-  },
+    
+    const data = {
+      batch: new mongoose.Types.ObjectId(id),
+    };
+    console.log("DDDAAATATA", data);
+    
+    if (!data) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          message: "data Invalid Parameters"
+        }
+      });
+    }
+    
+    const ids = req.body.batch;
+    console.log(req.body.batch);
+    
+    if (!ids) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          message: "ids Invalid Parameters"
+        }
+      });
+    }
+    
+    if (!ids.length) {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          message: "ids Invalid Parameters"
+        }
+      });
+    }
+    
+    const batchData = await BatchModel.findOne({ _id: new mongoose.Types.ObjectId(id) });
+    console.log(batchData);
+
+    for (const stdId of ids) {
+      const result = await Model.findOne({ _id: new mongoose.Types.ObjectId(stdId) }, { mobile: 1 });
+      // try {
+      //   const smsBatch = await smsOnlineClass(result.mobile, batchData.startDate, batchData.endDate);
+      //   // console.log("smsBatch", smsBatch.data);
+      // } catch (error) {
+      //   console.log(error);
+      // }
+    }
+    
+    const matchQueries = {
+      _id: {
+        $in: ids.map((o) => new mongoose.Types.ObjectId(o)),
+      },
+    };
+    
+    const updateQueries = {
+      $set: data,
+    };
+    
+    console.log(matchQueries, updateQueries);
+    const result = await Model.updateMany(matchQueries, updateQueries);
+    
+    // Return success response with proper status code
+    return res.status(200).json({
+      success: true,
+      data: result,
+      message: "Batch updated successfully"
+    });
+    
+  } catch (error) {
+    console.error("Error in updateBatch:", error);
+    
+    // Handle specific error types
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        error: {
+          status: 400,
+          message: "Invalid ID format"
+        }
+      });
+    }
+    
+    if (error.isJoi === true) {
+      return res.status(422).json({
+        error: {
+          status: 422,
+          message: error.message
+        }
+      });
+    }
+    
+    // Generic server error
+    return res.status(500).json({
+      error: {
+        status: 500,
+        message: "Internal server error"
+      }
+    });
+  }
+},
   removeBatch: async (req, res, next) => {
     try {
       const { student_id } = req.params;
@@ -734,7 +783,7 @@ module.exports = {
       }
       const deleted_at = Date.now();
       const result = await Model.updateOne(
-        { _id: mongoose.Types.ObjectId(id) },
+        { _id: new mongoose.Types.ObjectId(id) },
         { $set: { is_inactive: true, deleted_at } }
       );
       res.json(result);
@@ -750,7 +799,7 @@ module.exports = {
         throw createError.BadRequest("Invalid Parameters");
       }
       const dataToBeDeleted = await Model.findOne(
-        { _id: mongoose.Types.ObjectId(id) },
+        { _id: new mongoose.Types.ObjectId(id) },
         { email: 1, mobile: 1 }
       );
       if (!dataToBeDeleted) {
@@ -776,7 +825,7 @@ module.exports = {
       }
       const restored_at = Date.now();
       const result = await Model.updateOne(
-        { _id: mongoose.Types.ObjectId(id) },
+        { _id: new mongoose.Types.ObjectId(id) },
         { $set: { is_inactive: false, restored_at } }
       );
       res.json(result);

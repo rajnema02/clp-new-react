@@ -126,7 +126,7 @@ module.exports = {
       const studentAllReports = await Model.aggregate([
         {
           $match: {
-            Student_id: mongoose.Types.ObjectId(studentId),
+            Student_id: new mongoose.Types.ObjectId(studentId),
           },
         },
         {

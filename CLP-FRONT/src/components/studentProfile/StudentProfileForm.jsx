@@ -1,174 +1,131 @@
-import React, { useEffect, useState } from "react";
-import ComponentCard from "../../components/common/ComponentCard";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import PageMeta from "../../components/common/PageMeta";
-
-/**
- * Decode JWT safely (same as UserAddressCard & UserDropdown)
- */
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch (e) {
-    console.error("Invalid token format:", e);
-    return null;
-  }
-}
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaArrowLeft, FaPrint } from "react-icons/fa";
+import apiService from "../../Services/api.service";
+import environment from "../../environments/environments";
 
 const StudentProfileForm = () => {
-  const [userData, setUserData] = useState(null);
+  const [courseUserData, setCourseUserData] = useState({});
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        console.warn("No token found in localStorage");
-        setLoading(false);
-        return;
-      }
-
-      const payload = parseJwt(token);
-      if (!payload) {
-        console.warn("Invalid token payload");
-        setLoading(false);
-        return;
-      }
-
-      const userId =
-        payload.id || payload.userId || payload._id || payload.sub || payload.aud;
-
-      if (!userId) {
-        console.warn("No user ID found in token payload", payload);
-        setLoading(false);
-        return;
-      }
-
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const profileUrl = `${baseUrl}/auth/profile/${userId}`;
-
+    const fetchUserData = async () => {
       try {
-        const response = await fetch(profileUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
-          const text = await response.text();
-          throw new Error(
-            `Server returned HTML instead of JSON. Received: ${text.substring(0, 80)}...`
-          );
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch profile");
-        }
-
-        const data = await response.json();
-        setUserData(data.user || data);
-      } catch (err) {
-        console.error("Profile fetch error:", err);
+        const userId = localStorage.getItem("userId");
+        if (!userId) return console.error("User ID not found in localStorage.");
+        const res = await apiService.get(`/user/${userId}`);
+        setCourseUserData(res.data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchProfile();
+    fetchUserData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <p className="text-gray-500">Loading profile...</p>
-      </div>
-    );
-  }
+  const fileUrl = (path) => (path ? `${environment.apiUrl}/${path}` : "/no-image");
 
-  if (!userData) {
-    return (
-      <div className="p-6">
-        <p className="text-red-500">Failed to load profile data.</p>
-      </div>
-    );
-  }
+  const handlePrint = () => {
+    const printContents = document.getElementById("printArea").innerHTML;
+    const printWindow = window.open("", "", "height=600,width=800");
+    printWindow.document.write("<html><head><title>Print</title></head><body>");
+    printWindow.document.write(printContents);
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  if (loading) return <div className="text-center my-5">Loading...</div>;
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <PageMeta title="User Profile" description="Student profile details" />
-      <PageBreadcrumb pageTitle="Student Profile" />
+    <div className="container my-5">
+      <div className="d-flex justify-content-between mb-3 print-hidden">
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+          <FaArrowLeft className="mr-2" /> Back
+        </button>
+        <button className="btn btn-success" onClick={handlePrint}>
+          <FaPrint className="mr-2" /> Print
+        </button>
+      </div>
 
-      {/* User Information */}
-      <ComponentCard title="User Information">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-          <div><strong>Name:</strong> {userData.full_name}</div>
-          <div><strong>Role:</strong> {userData.role || "-"}</div>
-          <div><strong>Email:</strong> {userData.email}</div>
-          <div><strong>Mobile:</strong> {userData.mobile || "-"}</div>
-          <div><strong>Created At:</strong> {new Date(userData.created_at).toLocaleString()}</div>
-        </div>
-      </ComponentCard>
+      <div className="card shadow-lg p-4" id="printArea">
+        <style>{`
+          @media print {
+            .print-hidden { display: none !important; }
+          }
+          .label-title {
+            font-weight: bold;
+            color: #1a1a40;
+          }
+        `}</style>
 
-      {/* Correspondence Address */}
-      {/* <ComponentCard title="Correspondence Address">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-          <div className="md:col-span-3">
-            <strong>Address:</strong> {userData.address || "-"}
-          </div>
-          <div><strong>State:</strong> {userData.state || "-"}</div>
-          <div><strong>City:</strong> {userData.city || "-"}</div>
-          <div><strong>Pin Code:</strong> {userData.pin_code || "-"}</div>
-          <div>
-            <strong>Is identity pic uploaded?</strong>{" "}
-            {userData.identity_pic ? "Yes" : "No"}
-          </div>
-          {userData.identity_pic && (
-            <div className="md:col-span-3">
-              <img
-                src={userData.identity_pic}
-                alt="Identity"
-                className="w-40 border border-gray-300 mt-2"
-              />
-            </div>
-          )}
+        <h5 className="label-title mb-3">User information</h5>
+        <div className="row">
+          <Info label="Name" value={courseUserData.full_name} />
+          <Info label="Father's name" value={courseUserData.father_name} />
+          <Info label="Email" value={courseUserData.email} />
+          <Info label="Phone" value={courseUserData.mobile} />
+          <ImageView src={fileUrl(courseUserData.profile_photo)} label="Profile Photo" />
         </div>
-      </ComponentCard> */}
 
-      {/* Course Detail */}
-      {/* <ComponentCard title="Course Detail">
-        <div className="text-sm">
-          <strong className="block">Course:</strong>
-          <span>{userData.course_name || "-"}</span>
+        <hr />
+        <h5 className="label-title mb-3">Correspondence Address</h5>
+        <div className="row">
+          <Info label="Address" value={courseUserData.home_address} />
+          <Info label="State" value={courseUserData.state} />
+          <Info label="City" value={courseUserData.city} />
+          <Info label="Pin Code" value={courseUserData.postal_code} />
         </div>
-      </ComponentCard> */}
 
-      {/* Department / Org. Name */}
-      {/* <ComponentCard title="Department / Org. Name">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-          <div><strong>Department:</strong> {userData.department || "-"}</div>
-          <div><strong>Employee Type:</strong> {userData.employee_type || "-"}</div>
-          <div><strong>Company Type:</strong> {userData.company_type || "-"}</div>
-          <div><strong>Block:</strong> {userData.block || "-"}</div>
-          <div><strong>District:</strong> {userData.district || "-"}</div>
-          <div><strong>State:</strong> {userData.state || "-"}</div>
-          <div><strong>Pin Code:</strong> {userData.pin_code || "-"}</div>
-          {userData.address_proof && (
-            <div className="md:col-span-3">
-              <img
-                src={userData.address_proof}
-                alt="Proof"
-                className="w-40 border border-gray-300 mt-2"
-              />
-            </div>
-          )}
+        <div className="row mt-3">
+          <Info label="Is identity pic uploaded?" value={courseUserData.profile_photo ? "Yes" : "No"} />
         </div>
-      </ComponentCard> */}
+
+        <hr />
+        <h6 className="label-title mb-3">Course Detail:</h6>
+        <div className="row">
+          <Info label="Course Detail" value={courseUserData.course_code} />
+          <ImageView src={fileUrl(courseUserData.payment_file)} label="Payment Slip" />
+        </div>
+
+        <hr />
+        <h5 className="label-title mb-3">Department/Org. Name</h5>
+        <div className="row">
+          <Info label="Department" value={courseUserData.department} />
+          <Info label="Employee Type" value={courseUserData.employeeType} />
+          <Info label="Company Type" value={courseUserData.companyType} />
+          <Info label="Company" value={courseUserData.company} />
+          <Info label="Block" value={courseUserData.block} />
+          <Info label="State" value={courseUserData.state} />
+          <Info label="District" value={courseUserData.district} />
+          <Info label="Pin Code" value={courseUserData.pin_code} />
+        </div>
+      </div>
     </div>
   );
 };
+
+const Info = ({ label, value }) => (
+  <div className="col-md-4 mb-3">
+    <strong>{label}:</strong> <span className="ml-2">{value || "-"}</span>
+  </div>
+);
+
+const ImageView = ({ src, label }) => (
+  <div className="col-md-4 mb-3 text-center">
+    <strong>{label}</strong>
+    <div>
+      <img
+        src={src}
+        alt={label}
+        className="img-thumbnail mt-1"
+        style={{ width: "120px", height: "100px", objectFit: "cover" }}
+      />
+      <p className="text-muted">No image</p>
+    </div>
+  </div>
+);
 
 export default StudentProfileForm;

@@ -18,9 +18,18 @@ apiService.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle auth errors
+// Response interceptor: handle auth errors and normalize response
 apiService.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Normalize the response to match Angular's expected structure
+    return {
+      data: response.data,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      config: response.config
+    };
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -60,5 +69,41 @@ apiService.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Helper methods
+apiService.get = function(url, params = {}, config = {}) {
+  return this.request({
+    method: 'get',
+    url,
+    params,
+    ...config
+  });
+};
+
+apiService.post = function(url, data = {}, config = {}) {
+  return this.request({
+    method: 'post',
+    url,
+    data,
+    ...config
+  });
+};
+
+apiService.put = function(url, data = {}, config = {}) {
+  return this.request({
+    method: 'put',
+    url,
+    data,
+    ...config
+  });
+};
+
+apiService.delete = function(url, config = {}) {
+  return this.request({
+    method: 'delete',
+    url,
+    ...config
+  });
+};
 
 export default apiService;

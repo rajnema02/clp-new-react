@@ -17,7 +17,7 @@ import ScheduleExamsList from "./pages/Exam/ScheduleExamsList";
 import QuestionBanksList from "./pages/Exam/QuestionBanksList";
 import ExamsList from "./pages/Exam/ExamsList";
 import UsersManagementList from "./pages/userManagement/UsersManagementList";
-import StudentProfileForm from "./components/studentProfile/StudentProfileForm";
+import StudentsProfileForm from "./student-pages/studentsProfile/studentsProfileForm";
 import StudentsCertificate from "./student-pages/studentsProfile/StudentsCertificate";
 import StudentsAboutProgram from "./student-pages/studentAboutProgram/StudentsAboutProgram";
 import StudentsDemoExam from "./student-pages/studentExam/StudentsDemoExam";
@@ -127,6 +127,7 @@ export default function App() {
             <Route path="/about-program-list" element={<AboutProgramsList />} />
             <Route path="/department-list" element={<DepartmentsList/>} />
             <Route path="/department-create" element={<DepartmentsCreate />} />
+            {/* <Route path="/student-profile-form" element={<StudentsProfileForm />} /> */}
           </Route>
 
           {/* Protected Student Routes */}
@@ -136,7 +137,7 @@ export default function App() {
             </ProtectedRoute>
           }>
             <Route path="/student-dashboard" element={<StudentsDashboard />} />
-            <Route path="/student-profile-form" element={<StudentProfileForm />} />
+            <Route path="/student-profile-form" element={<StudentsProfileForm />} />
             <Route path="/student-certificate" element={<StudentsCertificate />} />
             <Route path="/student-about-program" element={<StudentsAboutProgram />} />
             <Route path="/student-demo-exam" element={<StudentsDemoExam />} />
