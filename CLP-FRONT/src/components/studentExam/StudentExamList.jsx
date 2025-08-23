@@ -1,3 +1,4 @@
+// src/pages/student/StudentExamList.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiService from "../../Services/api.service";
@@ -13,24 +14,86 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 
+/**
+ * Decode JWT token safely (same as UserAddressCard.jsx)
+ */
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch (e) {
+    console.error("Invalid token format:", e);
+    return null;
+  }
+}
+
 const StudentExamList = () => {
   const [examList, setExamList] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
-  const getExamStatus = (exam) => {
-    const now = Date.now();
-    const examStart = new Date(`${exam.exam_date}T${exam.exam_time}`).getTime();
-    const examEnd = new Date(exam.endTime).getTime();
+  // --- helper to check submitted status from backend ---
+  const getExamSubmittedStatus = async (exam, userId) => {
+    try {
+      const data = { userId, examId: exam._id };
+      const resp = await apiService.post("exam/getExamSubmittedStatus", data);
 
-    if (now < examStart) return "Upcoming";
-    if (now >= examStart && now <= examEnd) return "Ongoing";
-    if (now > examEnd) return "Exam Over";
+      if (resp.data?.message === true) {
+        return { ...exam, exam_status: "Submitted" };
+      }
+    } catch (err) {
+      console.error("Error checking submitted status:", err);
+    }
+    return exam;
+  };
+
+  // --- helper to calculate exam status ---
+  const getExamStatus = (exam) => {
+    const now = new Date();
+
+    const examDate = new Date(exam.exam_date);
+    const [hours, minutes] = exam.exam_time?.split(":") || ["0", "0"];
+
+    examDate.setHours(parseInt(hours, 10));
+    examDate.setMinutes(parseInt(minutes, 10));
+
+    const examStart = examDate;
+    const examEnd = new Date(
+      examStart.getTime() + parseInt(exam.exam_duration, 10) * 60000
+    );
+
+    if (
+      now.getDate() === examStart.getDate() &&
+      now.getMonth() === examStart.getMonth() &&
+      now.getFullYear() === examStart.getFullYear()
+    ) {
+      if (now < examStart) return "Upcoming";
+      if (now >= examStart && now <= examEnd) return "Ongoing";
+      if (now > examEnd) return "Exam Over";
+    } else if (now < examStart) {
+      return "Upcoming";
+    } else if (now > examEnd) {
+      return "Exam Over";
+    }
+
     return "Unknown";
   };
 
   const fetchExams = async () => {
-    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setErrorMsg("No access token found. Please login again.");
+      return;
+    }
+
+    const payload = parseJwt(token);
+    if (!payload) {
+      setErrorMsg("Invalid token. Please login again.");
+      return;
+    }
+
+    // Match UserAddressCard logic
+    const userId =
+      payload.id || payload.userId || payload._id || payload.sub || payload.aud;
 
     if (!userId || userId.length !== 24) {
       setErrorMsg("Invalid user ID. Please login again.");
@@ -38,15 +101,26 @@ const StudentExamList = () => {
     }
 
     try {
-      const response = await apiService.get(`/exam/getRescheduledExams/${userId}`);
-      if (response.data.success) {
-        const updatedExams = response.data.exams.map((exam) => ({
-          ...exam,
-          exam_status: getExamStatus(exam),
-        }));
+      const response = await apiService.get(
+        `/exam/getRescheduledExams/${userId}`
+      );
+
+      if (response.data?.exams) {
+        let updatedExams = await Promise.all(
+          response.data.exams.map(async (exam) => {
+            let status = getExamStatus(exam);
+            let updatedExam = { ...exam, exam_status: status };
+
+            if (status === "Ongoing" || status === "Exam Over") {
+              updatedExam = await getExamSubmittedStatus(updatedExam, userId);
+            }
+
+            return updatedExam;
+          })
+        );
         setExamList(updatedExams);
       } else {
-        setErrorMsg("Failed to fetch exams.");
+        setErrorMsg(response.data?.message || "Failed to fetch exams.");
       }
     } catch (error) {
       console.error("Failed to fetch exams:", error);
@@ -60,12 +134,15 @@ const StudentExamList = () => {
 
   const handleStartExam = (examId) => {
     localStorage.setItem("examId", examId);
-    navigate("/exams/instruction");
+    navigate(`/student-instructions/${examId}`);
   };
 
   return (
     <>
-      <PageMeta title="Student Exam List | TailAdmin" description="View upcoming and rescheduled exams" />
+      <PageMeta
+        title="Student Exam List"
+        description="View upcoming and rescheduled exams"
+      />
       <PageBreadcrumb pageTitle="Exam List" />
 
       <div className="space-y-6">
@@ -78,11 +155,11 @@ const StudentExamList = () => {
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
-                      <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Course Name</TableCell>
-                      <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Exam Date</TableCell>
-                      <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Exam Time</TableCell>
-                      <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Exam Status</TableCell>
-                      <TableCell isHeader className="px-5 py-3 text-start text-gray-500 text-theme-xs dark:text-gray-400">Action</TableCell>
+                      <TableCell isHeader>Course Name</TableCell>
+                      <TableCell isHeader>Exam Date</TableCell>
+                      <TableCell isHeader>Exam Time</TableCell>
+                      <TableCell isHeader>Exam Status</TableCell>
+                      <TableCell isHeader>Action</TableCell>
                     </TableRow>
                   </TableHeader>
 
@@ -90,28 +167,35 @@ const StudentExamList = () => {
                     {examList.length > 0 ? (
                       examList.map((exam) => (
                         <TableRow key={exam._id}>
-                          <TableCell className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90">
-                            {exam.course_name}
-                          </TableCell>
-                          <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                          <TableCell>{exam.course_name}</TableCell>
+                          <TableCell>
                             {new Date(exam.exam_date).toLocaleDateString("en-GB")}
                           </TableCell>
-                          <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                            {exam.exam_time}
-                          </TableCell>
-                          <TableCell className="px-5 py-4 text-theme-sm">
-                            <span className={`badge badge-pill ${
-                              exam.exam_status === "Upcoming" ? "badge-success" :
-                              exam.exam_status === "Ongoing" ? "badge-primary" :
-                              exam.exam_status === "Exam Over" ? "badge-danger" :
-                              "badge-warning"
-                            }`}>
+                          <TableCell>{exam.exam_time}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`badge badge-pill ${
+                                exam.exam_status === "Upcoming"
+                                  ? "badge-success"
+                                  : exam.exam_status === "Ongoing"
+                                  ? "badge-primary"
+                                  : exam.exam_status === "Exam Over"
+                                  ? "badge-danger"
+                                  : exam.exam_status === "Submitted"
+                                  ? "badge-warning"
+                                  : "badge-secondary"
+                              }`}
+                            >
                               {exam.exam_status}
                             </span>
                           </TableCell>
-                          <TableCell className="px-5 py-4">
+                          <TableCell>
                             {exam.exam_status === "Ongoing" && (
-                              <Button size="sm" variant="default" onClick={() => handleStartExam(exam._id)}>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleStartExam(exam._id)}
+                              >
                                 Start Exam
                               </Button>
                             )}

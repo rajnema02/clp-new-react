@@ -120,35 +120,92 @@ module.exports = {
   }
 }
 ,
-  get: async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      if (!id) {
-        throw createError.BadRequest("Invalid Parameters");
-      }
-      const result = await Model.findOne({ _id: mongoose.Types.ObjectId(id) });
-      if (!result) {
-        throw createError.NotFound(`No ${ModelName} Found`);
-      }
-      const timeString = result.exam_time;
-      const date = new Date();
-      const dateTimeString =
-        date.toISOString().split("T")[0] + "T" + timeString + ":00Z";
-      const timestmp = new Date(dateTimeString).getTime();
-      // console.log(timestmp);
-      // console.log(dateTimeString);
-      this.durationInt = parseInt(result.exam_duration);
-      this.examEndTime = this.durationInt * 60;
-      // this.examEndTime = 5400;
-      const endTime = timestmp + this.examEndTime * 1000; // Convert duration to milliseconds
-      console.log("ENDTIME:>>",endTime);
-      result.endTime = endTime;
-      res.json(result);
-      return;
-    } catch (error) {
-      next(error);
+// Add this method to your controller
+getExamById: async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return next(createError.BadRequest("Exam ID is required"));
     }
-  },
+
+    // Validate and convert to ObjectId
+    const exam = await Model.findOne({ 
+      _id: mongoose.Types.ObjectId(id),
+      is_inactive: false 
+    }).lean();
+
+    if (!exam) {
+      return next(createError.NotFound(`No exam found with id: ${id}`));
+    }
+
+    // Compute exam end time based on start time + duration
+    const timeString = exam.exam_time;
+    const examDate = new Date(exam.exam_date);
+    
+    // Combine date and time
+    const [hours, minutes] = timeString.split(':');
+    examDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    const startTimestamp = examDate.getTime();
+    const durationInSeconds = parseInt(exam.exam_duration, 10) * 60;
+    const endTime = startTimestamp + durationInSeconds * 1000;
+
+    // Return clean response with exam data
+    res.json({
+      ...exam,
+      examId: exam._id,
+      endTime,
+      startTime: startTimestamp,
+    });
+  } catch (error) {
+    next(error);
+  }
+},
+
+// Also update your existing get method to be more robust
+get: async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return next(createError.BadRequest("Exam ID is required"));
+    }
+
+    // Validate and convert to ObjectId
+    const exam = await Model.findOne({ 
+      _id: new mongoose.Types.ObjectId(id),
+      is_inactive: false 
+    }).lean();
+
+    if (!exam) {
+      return next(createError.NotFound(`No exam found with id: ${id}`));
+    }
+
+    // Compute exam end time based on start time + duration
+    const timeString = exam.exam_time;
+    const examDate = new Date(exam.exam_date);
+    
+    // Combine date and time
+    const [hours, minutes] = timeString.split(':');
+    examDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    const startTimestamp = examDate.getTime();
+    const durationInSeconds = parseInt(exam.exam_duration, 10) * 60;
+    const endTime = startTimestamp + durationInSeconds * 1000;
+
+    // Return clean response with exam data
+    res.json({
+      ...exam,
+      examId: exam._id,
+      endTime,
+      startTime: startTimestamp,
+    });
+  } catch (error) {
+    next(error);
+  }
+},
+
   getByTitle: async (req, res, next) => {
     try {
       console.log(req.params);
@@ -809,8 +866,8 @@ module.exports = {
       const examId = req.body.examId;
 
       const dataExists = await AnswerSheetModel.findOne({
-        user_id: mongoose.Types.ObjectId(userId),
-        exam_id: mongoose.Types.ObjectId(examId),
+        user_id: new mongoose.Types.ObjectId(userId),
+        exam_id: new mongoose.Types.ObjectId(examId),
       });
 
       if (dataExists) {

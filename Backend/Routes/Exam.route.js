@@ -28,6 +28,8 @@ router.get('/getQuestions1', verifyAccessToken, Controller.getQuestions1)
 
 router.get('/:id', verifyAccessToken, Controller.get)
 
+router.get('/getExamById/:id', verifyAccessToken, Controller.getExamById)
+
 router.post('/getExamSubmittedStatus', verifyAccessToken, Controller.getExamSubmittedStatus);
 
 router.get('/title/:title', verifyAccessToken, Controller.getByTitle)

@@ -48,6 +48,8 @@ import AboutProgramsList from "./pages/AboutProgram/AboutProgramsList";
 import AboutProgramsCreate from "./pages/AboutProgram/AboutProgramsCreate";
 import DepartmentsList from "./pages/department/DepartmentsList";
 import DepartmentsCreate from "./pages/department/DepartmentsCreate";
+import InstructionsPage from "./student-pages/studentExam/InstructionsPage";
+import QuestionsPaper from "./student-pages/studentExam/QuestionsPaper";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -146,6 +148,8 @@ export default function App() {
             <Route path="/student-registration-form" element={<StudentRegistrationsForm />} />
             <Route path="/student-message" element={<StudentsMessages />} />
             <Route path="/student-video-library" element={<StudentsVideoLibrary />} />
+            <Route path="/student-instructions/:id?" element={<InstructionsPage />} />
+            <Route path="/student-question-paper/:id" element={<QuestionsPaper/>} />
           </Route>
 
           {/* Fallback Route */}
