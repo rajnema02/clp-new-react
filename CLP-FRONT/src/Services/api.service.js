@@ -18,17 +18,10 @@ apiService.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle auth errors and normalize response
+// Response interceptor: handle auth errors
 apiService.interceptors.response.use(
   (response) => {
-    // Normalize the response to match Angular's expected structure
-    return {
-      data: response.data,
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      config: response.config
-    };
+    return response;
   },
   async (error) => {
     const originalRequest = error.config;
@@ -70,12 +63,13 @@ apiService.interceptors.response.use(
   }
 );
 
-// Helper methods
+// KEEPING HELPER METHODS (as requested)
+// These helper methods ensure consistent API usage throughout the app
 apiService.get = function(url, params = {}, config = {}) {
   return this.request({
     method: 'get',
     url,
-    params,
+    params, // This should be passed directly, not nested
     ...config
   });
 };

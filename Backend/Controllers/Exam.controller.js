@@ -593,241 +593,184 @@ get: async (req, res, next) => {
     }
   },
   getQuestions1: async (req, res, next) => {
-    try {
-      console.log("byeeeeeeeeeeee");
-      const { user_id, exam_id, batch_id } = req.query;
+  try {
+    console.log("getQuestions1 called with query:", req.query);
+    const { user_id, exam_id, batch_id } = req.query;
 
-      const examData = await Model.findOne({
-        _id: mongoose.Types.ObjectId(exam_id),
+    // Check if user_id is provided
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required"
       });
-      const batchId = examData.batch_id[0];
-
-      const batchData = await Batch.findOne({
-        _id: mongoose.Types.ObjectId(batchId),
-      });
-      const total_no_of_questions = batchData.total_no_of_questions;
-
-      const percent_of_course_questions = batchData.percent_of_course_questions;
-
-      console.log(req.query);
-      const percent_of_general_questions = 100 - percent_of_course_questions;
-
-      const no_of_general_questions = Math.floor(
-        (percent_of_general_questions * total_no_of_questions) / 100
-      );
-      console.log("No. of general questions=>>>>>>>", no_of_general_questions);
-
-      const no_of_course_questions =
-        total_no_of_questions - no_of_general_questions;
-
-      console.log("No. of course questions=>>>>>>>", no_of_course_questions);
-
-      // const no_of_2_op_questions = Math.ceil((15 * no_of_course_questions)/100);
-      // console.log('No. of 2 option questions=>>>>>>>', no_of_2_op_questions);
-
-      // const no_of_4_op_questions = Math.ceil((85 * no_of_course_questions)/100);
-      // console.log('No. of 4 option questions=>>>>>>>', no_of_4_op_questions);
-      console.log(
-        "Total formed",
-        no_of_general_questions + no_of_course_questions
-      );
-
-      const query = {};
-
-      // if (course_type) {
-      //   query.course_type = new RegExp(course_type, "i");
-      // }
-      // if (course_name) {
-      //   query.course_name = new RegExp(course_name, "i");
-      // }
-      query.course_type = batchData.course_type;
-      query.course_name = batchData.course_name;
-
-      query.is_inactive = { $ne: true };
-      // query.is_inactive = is_inactive && is_inactive == "true" ? true : false;
-      // get 4 options questions
-      query.regional_language = "hindi";
-      const dataExists = await AnswerSheetModel.findOne({
-        user_id: mongoose.Types.ObjectId(user_id),
-        exam_id: mongoose.Types.ObjectId(exam_id),
-        // question_id: mongoose.Types.ObjectId(ques.question_id),
-      });
-
-      if (dataExists) {
-        const initiallySavedQuestions = await AnswerSheetModel.aggregate([
-          {
-            $match: {
-              user_id: mongoose.Types.ObjectId(user_id),
-              exam_id: mongoose.Types.ObjectId(exam_id),
-            },
-          },
-        ]);
-        console.log("Already saved shown");
-        res.json({
-          message: "Old Questions",
-          data: initiallySavedQuestions,
-        });
-
-        return;
-      }
-      // query.number_of_options = 4;
-
-      // let fourOptionQuestions = await Question.aggregate([
-      //   {
-      //     $match: query,
-      //   },
-      //   {
-      //     $project: { _id: 1 },
-      //   },
-      // ]);
-      //   let allQuestions = await Question.find();
-      // console.log(allQuestions);
-
-      // console.log('Matched $ question', fourOptionQuestions);
-      //question randomization
-
-      // fourOptionQuestions = _.shuffle(fourOptionQuestions);
-
-      // let selected4OpQues = fourOptionQuestions.slice(0, 60);
-
-      // get 2 options questions
-
-      // query.number_of_options = 2;
-      // console.log("==========================");
-      // console.log(query);
-      // console.log("==========================");
-      // let twoOptionsQuestions = await Question.aggregate([
-      //   {
-      //     $match: query,
-      //   },
-      //   {
-      //     $project: { _id: 1 },
-      //   },
-      // ]);
-
-      // twoOptionsQuestions = _.shuffle(twoOptionsQuestions);
-
-      // let selected2OpQues = twoOptionsQuestions.slice(0, 10);
-
-      let courseQuestions = await Question.aggregate([
-        {
-          $match: query,
-        },
-        {
-          $project: { _id: 1 },
-        },
-      ]);
-      console.log(query);
-
-      console.log("course questions", courseQuestions);
-
-      if (courseQuestions.length < no_of_course_questions) {
-        res.json({
-          success: false,
-          message: `Not enough questions of ${batchData.course_name} course in question bank`,
-        });
-        return;
-      }
-      let shuffledCourseQuestions = _.shuffle(courseQuestions);
-      let selectedCourseQuestions = shuffledCourseQuestions.slice(
-        0,
-        no_of_course_questions
-      );
-      //get general type questions
-
-      const genQuery = {};
-      genQuery.is_inactive = { $ne: true };
-      genQuery.regional_language = "hindi";
-      genQuery.course_type = "General";
-      let genTypeQuestions = await Question.aggregate([
-        {
-          $match: genQuery,
-        },
-        {
-          $project: { _id: 1 },
-        },
-      ]);
-      if (genTypeQuestions.length < no_of_general_questions) {
-        res.json({
-          success: false,
-          message: "Not enough general type questions in question bank!!",
-        });
-        return;
-      }
-
-      console.log("@@@@@@@@@@@@@@@@>>>>><<<<<");
-      let shuffledGenTypeQuestions = _.shuffle(genTypeQuestions);
-      let selectedGenTypeQuestions = shuffledGenTypeQuestions.slice(
-        0,
-        no_of_general_questions
-      );
-      console.log("========================================>");
-      // console.log("2OPTION", selected2OpQues.length);
-      // console.log("4OPTION", selected4OpQues.length);
-      console.log("GENERAL", selectedGenTypeQuestions.length);
-      console.log("Course", selectedCourseQuestions.length);
-      console.log("========================================>");
-      let questionIds = selectedCourseQuestions.concat(
-        selectedGenTypeQuestions
-      );
-      //   const quesIdArray = [];
-      //   for(let ques of questionIds){
-      //     quesIdArray.push(ques);
-
-      //   }
-      let finalQuestions = await Question.find({
-        _id: { $in: questionIds },
-      });
-
-      let quesToDisplay = finalQuestions.map((o) => {
-        let newO = {
-          _id: o._id,
-          question: o.question,
-          option_1: o.option_1,
-          option_2: o.option_2,
-          option_3: o.option_3,
-          option_4: o.option_4,
-          marks: o.marks,
-          selectedAnswer: null,
-          seen: false,
-          status: "unanswered",
-        };
-
-        return newO;
-      });
-      
-      for (let qtd of quesToDisplay) {
-          const AnswerSheetData = new AnswerSheetModel({
-            user_id: req.user._id,
-            user_name: req.user.full_name,
-            exam_id: examData._id,
-            batch_id: examData.batch_id[0],
-            exam_name: examData.exam_name,
-            question_id: qtd._id,
-    
-            seen: false,
-            question: qtd.question,
-            option_1: qtd.option_1,
-            option_2: qtd.option_2,
-            option_3: qtd.option_3,
-            option_4: qtd.option_4,
-            marks: qtd.marks,
-            userAnswer: null,
-            status: "unanswered"
-          });
-          const resultt = await AnswerSheetData.save();
-      }
-
-      res.json({
-        data: quesToDisplay,
-        message: "New questions",
-      });
-
-      return;
-    } catch (error) {
-      next(error);
     }
-  },
+
+    const examData = await Model.findOne({
+      _id: new mongoose.Types.ObjectId(exam_id),
+    });
+    
+    // Add null check for batch_id
+    if (!examData || !examData.batch_id || !examData.batch_id.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Exam data is invalid or missing batch information"
+      });
+    }
+    
+    const batchId = examData.batch_id[0];
+
+    const batchData = await Batch.findOne({
+      _id: new mongoose.Types.ObjectId(batchId),
+    });
+    
+    // Add null check for batchData
+    if (!batchData) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch data not found"
+      });
+    }
+
+    const total_no_of_questions = batchData.total_no_of_questions;
+    const percent_of_course_questions = batchData.percent_of_course_questions;
+
+    const percent_of_general_questions = 100 - percent_of_course_questions;
+    const no_of_general_questions = Math.floor(
+      (percent_of_general_questions * total_no_of_questions) / 100
+    );
+    const no_of_course_questions = total_no_of_questions - no_of_general_questions;
+
+    const query = {};
+    query.course_type = batchData.course_type;
+    query.course_name = batchData.course_name;
+    query.is_inactive = { $ne: true };
+    query.regional_language = "hindi";
+
+    // Check if user already has answers for this exam
+    const dataExists = await AnswerSheetModel.findOne({
+      user_id: new mongoose.Types.ObjectId(user_id),
+      exam_id: new mongoose.Types.ObjectId(exam_id),
+    });
+
+    if (dataExists) {
+      const initiallySavedQuestions = await AnswerSheetModel.aggregate([
+        {
+          $match: {
+            user_id: new mongoose.Types.ObjectId(user_id),
+            exam_id: new mongoose.Types.ObjectId(exam_id),
+          },
+        },
+      ]);
+      console.log("Returning existing questions");
+      return res.json({
+        message: "Old Questions",
+        data: initiallySavedQuestions,
+      });
+    }
+
+    // Get course questions
+    let courseQuestions = await Question.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $project: { _id: 1 },
+      },
+    ]);
+
+    if (courseQuestions.length < no_of_course_questions) {
+      return res.json({
+        success: false,
+        message: `Not enough questions of ${batchData.course_name} course in question bank`,
+      });
+    }
+
+    let shuffledCourseQuestions = _.shuffle(courseQuestions);
+    let selectedCourseQuestions = shuffledCourseQuestions.slice(
+      0,
+      no_of_course_questions
+    );
+
+    // Get general questions
+    const genQuery = {
+      is_inactive: { $ne: true },
+      regional_language: "hindi",
+      course_type: "General",
+    };
+    
+    let genTypeQuestions = await Question.aggregate([
+      {
+        $match: genQuery,
+      },
+      {
+        $project: { _id: 1 },
+      },
+    ]);
+    
+    if (genTypeQuestions.length < no_of_general_questions) {
+      return res.json({
+        success: false,
+        message: "Not enough general type questions in question bank!!",
+      });
+    }
+
+    let shuffledGenTypeQuestions = _.shuffle(genTypeQuestions);
+    let selectedGenTypeQuestions = shuffledGenTypeQuestions.slice(
+      0,
+      no_of_general_questions
+    );
+
+    let questionIds = selectedCourseQuestions.concat(selectedGenTypeQuestions);
+    
+    let finalQuestions = await Question.find({
+      _id: { $in: questionIds },
+    });
+
+    let quesToDisplay = finalQuestions.map((o) => ({
+      _id: o._id,
+      question: o.question,
+      option_1: o.option_1,
+      option_2: o.option_2,
+      option_3: o.option_3,
+      option_4: o.option_4,
+      marks: o.marks,
+      selectedAnswer: null,
+      seen: false,
+      status: "unanswered",
+    }));
+
+    // Save questions to answer sheet - FIXED: Use user_id from query instead of req.user
+    for (let qtd of quesToDisplay) {
+      const AnswerSheetData = new AnswerSheetModel({
+        user_id: new mongoose.Types.ObjectId(user_id), // Use user_id from query
+        user_name: "Student", // You might want to fetch the user's name
+        exam_id: examData._id,
+        batch_id: examData.batch_id[0],
+        exam_name: examData.exam_name,
+        question_id: qtd._id,
+        seen: false,
+        question: qtd.question,
+        option_1: qtd.option_1,
+        option_2: qtd.option_2,
+        option_3: qtd.option_3,
+        option_4: qtd.option_4,
+        marks: qtd.marks,
+        userAnswer: null,
+        status: "unanswered"
+      });
+      await AnswerSheetData.save();
+    }
+
+    res.json({
+      data: quesToDisplay,
+      message: "New questions",
+    });
+
+  } catch (error) {
+    console.error("Error in getQuestions1:", error);
+    next(error);
+  }
+},
   saveQuestionsInitially: async (req, res, next) => {
     try {
       let quesToSave = [];
@@ -1210,23 +1153,50 @@ get: async (req, res, next) => {
     }
   },
 
-  finalExammSubmit: async (req, res, next) => {
-    try {
-      const { mobile } = req.query;
-      if (!mobile) {
-        throw createError.BadRequest("Invalid Parameters");
-      }
-      console.log("smsExamFinalSubmit Mobile >>>", mobile);
+//   finalExammSubmit: async (req, res, next) => {
+//   try {
+//     const { mobile } = req.query;
+//     console.log("Received final exam submit request with mobile:", mobile);
+    
+//     if (!mobile) {
+//       console.error("Mobile parameter is missing");
+//       throw createError.BadRequest("Mobile parameter is required");
+//     }
+    
+//     console.log("smsExamFinalSubmit Mobile >>>", mobile);
 
-    //   const smsExamFinalSubmit = await smsExamSubmit(mobile);
+//     //   const smsExamFinalSubmit = await smsExamSubmit(mobile);
+//     //   console.log("smsExamFinalSubmit", smsExamFinalSubmit.data);
 
-    //   console.log("smsExamFinalSubmit", smsExamFinalSubmit.data);
+//     res.send({ success: true, message: "Exam submitted successfully" });
+//   } catch (error) {
+//     console.error("Error in finalExammSubmit:", error);
+//     next(error);
+//   }
+// },
 
-      res.send({ success: true });
-    } catch (error) {
-      next(error);
+finalExammSubmit: async (req, res, next) => {
+  try {
+    const { mobile } = req.body;   // ✅ take from body, not query
+    console.log("Received final exam submit request with mobile:", mobile);
+
+    if (!mobile) {
+      console.error("Mobile parameter is missing");
+      throw createError.BadRequest("Mobile parameter is required");
     }
-  },
+
+    console.log("smsExamFinalSubmit Mobile >>>", mobile);
+
+    // const smsExamFinalSubmit = await smsExamSubmit(mobile);
+    // console.log("smsExamFinalSubmit", smsExamFinalSubmit.data);
+
+    res.send({ success: true, message: "Exam submitted successfully" });
+  } catch (error) {
+    console.error("Error in finalExammSubmit:", error);
+    next(error);
+  }
+}
+,
   delete: async (req, res, next) => {
     try {
       const { id } = req.params;

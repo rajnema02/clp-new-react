@@ -7,7 +7,10 @@ router.post('/reScheduleExam', verifyAccessToken, Controller.reScheduleExam)
 
 router.post('/', verifyAccessToken, Controller.create)
 
-router.get('/finalExamSubmit', verifyAccessToken, Controller.finalExammSubmit)
+// router.get('/finalExamSubmit', verifyAccessToken, Controller.finalExammSubmit)
+
+router.post('/finalExamSubmit', verifyAccessToken, Controller.finalExammSubmit)
+
 
 router.get('/checkIfAlreadyRescheduled', verifyAccessToken, Controller.checkIfAlreadyReScheduled)
 

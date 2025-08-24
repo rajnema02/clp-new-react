@@ -50,6 +50,7 @@ import DepartmentsList from "./pages/department/DepartmentsList";
 import DepartmentsCreate from "./pages/department/DepartmentsCreate";
 import InstructionsPage from "./student-pages/studentExam/InstructionsPage";
 import QuestionsPaper from "./student-pages/studentExam/QuestionsPaper";
+import StudentExamsSubmit from "./student-pages/studentExam/StudentExamsSubmit";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -149,8 +150,9 @@ export default function App() {
             <Route path="/student-message" element={<StudentsMessages />} />
             <Route path="/student-video-library" element={<StudentsVideoLibrary />} />
             <Route path="/student-instructions/:id?" element={<InstructionsPage />} />
-            <Route path="/student-question-paper/:id" element={<QuestionsPaper/>} />
+            <Route path="/student-exam-submit" element={<StudentExamsSubmit />} />
           </Route>
+            <Route path="/student-question-paper/:id" element={<QuestionsPaper/>} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
