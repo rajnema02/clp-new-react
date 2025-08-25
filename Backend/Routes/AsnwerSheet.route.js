@@ -30,5 +30,11 @@ router.get(
   verifyAccessToken,
   Controller.testGrades
 );
+router.get(
+  "/checkIfAlreadyProcessed",
+  verifyAccessToken,
+  Controller.checkIfAlreadyProcessed
+);
+
 
 module.exports = router;

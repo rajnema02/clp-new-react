@@ -338,86 +338,74 @@ module.exports = {
   },
 
   downloadCertificates: async (req, res, next) => {
-    try {
-      const { exam_id } = req.query;
-      console.log("Download Cerificate exam id", exam_id);
-      const filename = `unsigned-${exam_id}.zip`;
-      console.log("Expected filename",filename);
-      const directory = path.join(
-        __dirname,
-        `./../certificates/unsigned-certificates/`
-      );
-      // Read the contents of the directory
-      fs.readdir(directory, (err, files) => {
+  try {
+    const { exam_id } = req.query;
+    if (!exam_id) {
+      return res.status(400).json({ success: false, message: "exam_id is required" });
+    }
+
+    console.log("Download Certificate exam id:", exam_id);
+
+    const filename = `unsigned-${exam_id}.zip`;
+    const directory = path.join(__dirname, "./../certificates/unsigned-certificates");
+    const filePath = path.join(directory, filename);
+
+    // Check if file exists
+    if (fs.existsSync(filePath)) {
+      console.log("File found:", filePath);
+      return res.sendFile(filePath, { root: "." }, (err) => {
         if (err) {
-          console.error("Error reading directory:", err);
-          return;
+          console.error("Error sending file:", err);
+          next(err);
         }
-
-        // Check each file in the directory
-        for (const file of files) {
-          const filePath = path.join(directory, file);
-          console.log(filePath);
-          console.log("file iterating>>>>>>>>>>>",file);
-          if (file === filename) {
-            console.log("File found:", filePath);
-            res.sendFile(filePath);
-            return;
-          }
-
-          // Check if the current file is a directory
-          //   if (fs.statSync(filePath).isDirectory()) {
-          // Recursively search the subdirectory
-          //     searchFile(filePath, filename);
-          //   } else {
-          // Check if the current file matches the desired filename
-
-          //   }
-        }
-
-        res.send({ message: "Certificates not generated yet!" });
-        return;
       });
-    } catch (error) {
-      next(error);
+    } else {
+      console.log("File not found:", filePath);
+      return res.status(404).json({ success: false, message: "Certificates not generated yet!" });
     }
-  },
+  } catch (error) {
+    console.error("downloadCertificates error:", error);
+    next(error);
+  }
+},
   checkIfAlreadyGenerated: async (req, res, next) => {
-    try {
-      const { examId } = req.query;
-      const filename = `unsigned-${examId}`;
-      console.log("Concatenated", filename);
-      const directory = path.join(
-        __dirname,
-        `./../certificates/unsigned-certificates/`
-      );
-      const files = fs.readdirSync(directory);
-      console.log(files);
-      for (file of files) {
-        console.log('looping');
-        if (file == filename) {
-          res.json({
-            success: true,
-            message: "Certificates already generated",
-          });
-          return;
-          // } else {
-          //   res.json({
-          //     success: false,
-          //     message: "Certificates not already downloaded",
-          //   });
-          //   return;
-          // }
-        }
-      }
-      res.json({ success: false, message: "no certificates generated yet!!" });
-      return;
+  try {
+    const { examId } = req.query;
+    const filename = `unsigned-${examId}`;
+    console.log("Concatenated:", filename);
 
-      // Check each file in the directory
-    } catch (error) {
-      next(error);
+    const directory = path.join(__dirname, "./../certificates/unsigned-certificates/");
+
+    // ✅ Check if directory exists, if not create it
+    if (!fs.existsSync(directory)) {
+      console.log("Directory not found, creating:", directory);
+      fs.mkdirSync(directory, { recursive: true });
+
+      // No certificates yet since directory was just created
+      return res.json({ success: false, message: "No certificates generated yet!!" });
     }
-  },
+
+    // ✅ Now safely read files
+    const files = fs.readdirSync(directory);
+    console.log("Files found:", files);
+
+    for (const file of files) {
+      console.log("Checking file:", file);
+      if (file === filename) {
+        return res.json({
+          success: true,
+          message: "Certificates already generated",
+        });
+      }
+    }
+
+    return res.json({ success: false, message: "No certificates generated yet!!" });
+
+  } catch (error) {
+    console.error("Error in checkIfAlreadyGenerated:", error);
+    next(error);
+  }
+},
 
   checkIfAlreadyDownloaded: async (req, res, next) => {
     try {

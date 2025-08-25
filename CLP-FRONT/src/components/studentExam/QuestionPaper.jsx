@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiService from "../../Services/api.service";
@@ -11,6 +12,7 @@ const QuestionPaper = () => {
   const [questionList, setQuestionList] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [remainingTime, setRemainingTime] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(0); // Add this state
   const [userSubmit, setUserSubmit] = useState(false);
   const [demoExam, setDemoExam] = useState(false);
   const [submitFinalExam, setSubmitFinalExam] = useState(false);
@@ -21,34 +23,39 @@ const QuestionPaper = () => {
   const [globalIndex, setGlobalIndex] = useState(1);
   const [questionCount, setQuestionCount] = useState(0);
   const [goBackButton, setGoBackButton] = useState(true);
-  const [timer, setTimer] = useState(0);
-  const [endTime, setEndTime] = useState(null);
+  const [examEndTime, setExamEndTime] = useState(null);
   const [examId, setExamId] = useState("");
   const [examName, setExamName] = useState("");
   const [courseType, setCourseType] = useState("");
   const [courseName, setCourseName] = useState("");
+  const [batchName, setBatchName] = useState("");
   const [duration, setDuration] = useState("90 Mins.");
+  
+  // Counters for question status
+  const [notViewed, setNotViewed] = useState(0);
+  const [viewed, setViewed] = useState(0);
+  const [answered, setAnswered] = useState(0);
 
-  // Use refs to store interval IDs and prevent multiple intervals
+  // Use refs to prevent multiple intervals and track submission
   const timerIntervalRef = useRef(null);
-  const remainingTimeIntervalRef = useRef(null);
   const hasSubmittedRef = useRef(false);
+  const autoSubmitTriggeredRef = useRef(false); // Add this ref
 
   // Environment config
   const env = { 
     url: 'http://localhost:3000' 
   };
 
-  // Helper function to get user ID - handles both _id and id formats
-  const getUserId = (userData) => {
-    return userData?._id || userData?.id;
-  };
+  // // Helper function to get user ID - handles both _id and id formats
+  // const getUserId = (userData) => {
+  //   return userData?.id || userData?._id;
+  // };
 
-  // Helper function to validate user data
-  const isValidUser = (userData) => {
-    const userId = getUserId(userData);
-    return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
-  };
+  // // Helper function to validate user data
+  // const isValidUser = (userData) => {
+  //   const userId = getUserId(userData);
+  //   return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
+  // };
 
   // ================= CLEANUP INTERVALS =================
   const cleanupIntervals = () => {
@@ -56,11 +63,162 @@ const QuestionPaper = () => {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-    if (remainingTimeIntervalRef.current) {
-      clearInterval(remainingTimeIntervalRef.current);
-      remainingTimeIntervalRef.current = null;
+  };
+
+  // ================= TIMER CALCULATIONS =================
+  const calculateExamEndTime = (examData) => {
+    try {
+      console.log("Raw exam data for timer calculation:", examData);
+
+      // Parse exam date (format: YYYY-MM-DD or ISO string)
+      let examDate;
+      if (examData.exam_date) {
+        examDate = new Date(examData.exam_date);
+      } else {
+        console.error("No exam_date found in exam data");
+        return new Date(Date.now() + (90 * 60 * 1000)); // 90 minutes fallback
+      }
+
+      // Parse exam time (formats: "HH:MM", "HH:MM:SS", or "HH:MM AM/PM")
+      let startTime = new Date(examDate);
+      
+      if (examData.exam_time) {
+        const timeStr = examData.exam_time.toString().trim();
+        console.log("Parsing exam time:", timeStr);
+        
+        // Handle different time formats
+        let hours = 0, minutes = 0;
+        
+        if (timeStr.includes('AM') || timeStr.includes('PM')) {
+          // 12-hour format: "10:30 AM"
+          const [time, period] = timeStr.split(' ');
+          const [h, m] = time.split(':');
+          hours = parseInt(h);
+          minutes = parseInt(m) || 0;
+          
+          if (period === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period === 'AM' && hours === 12) {
+            hours = 0;
+          }
+        } else {
+          // 24-hour format: "10:30" or "10:30:00"
+          const timeParts = timeStr.split(':');
+          hours = parseInt(timeParts[0]) || 0;
+          minutes = parseInt(timeParts[1]) || 0;
+        }
+        
+        startTime.setHours(hours, minutes, 0, 0);
+        console.log("Parsed start time:", startTime);
+      }
+
+      // Get exam duration from various possible fields
+      let durationMinutes = 90; // default
+      
+      if (examData.duration) {
+        if (typeof examData.duration === 'number') {
+          durationMinutes = examData.duration;
+        } else if (typeof examData.duration === 'string') {
+          // Parse duration string like "90 Mins." or "1.5 hours" or "90"
+          const durationStr = examData.duration.toLowerCase();
+          const numMatch = durationStr.match(/[\d.]+/);
+          if (numMatch) {
+            const num = parseFloat(numMatch[0]);
+            if (durationStr.includes('hour')) {
+              durationMinutes = num * 60;
+            } else {
+              durationMinutes = num;
+            }
+          }
+        }
+      } else if (examData.exam_duration) {
+        durationMinutes = parseInt(examData.exam_duration) || 90;
+      } else if (examData.time_duration) {
+        durationMinutes = parseInt(examData.time_duration) || 90;
+      }
+
+      console.log("Calculated duration in minutes:", durationMinutes);
+
+      // Calculate end time
+      const endTime = new Date(startTime.getTime() + (durationMinutes * 60 * 1000));
+      
+      console.log("Exam start time:", startTime);
+      console.log("Exam end time:", endTime);
+      console.log("Current time:", new Date());
+      console.log("Time until exam ends (minutes):", (endTime.getTime() - new Date().getTime()) / (1000 * 60));
+      
+      // Validation: Check if exam has already ended
+      const now = new Date();
+      if (endTime <= now) {
+        console.warn("Calculated exam end time is in the past. Using fallback duration.");
+        return new Date(now.getTime() + (durationMinutes * 60 * 1000));
+      }
+      
+      return endTime;
+    } catch (error) {
+      console.error("Error calculating exam end time:", error);
+      // Fallback: 90 minutes from now
+      return new Date(Date.now() + (90 * 60 * 1000));
     }
   };
+
+  const formatTime = (timeInSeconds) => {
+    if (timeInSeconds <= 0) return "00:00:00";
+    
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const startTimer = (endTime) => {
+    // Clear existing timer
+    cleanupIntervals();
+    
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const endTimeMs = endTime.getTime();
+      const remainingMs = endTimeMs - now;
+      
+      console.log("Timer update - Remaining ms:", remainingMs, "Remaining minutes:", Math.floor(remainingMs / (1000 * 60)));
+      
+      if (remainingMs <= 0) {
+        // Time is up
+        setRemainingTime("00:00:00");
+        setRemainingSeconds(0);
+        cleanupIntervals();
+        
+        // Auto-submit if not already submitted or auto-submit not triggered
+        if (!hasSubmittedRef.current && !autoSubmitTriggeredRef.current) {
+          console.log("Time expired - auto submitting exam");
+          autoSubmitTriggeredRef.current = true;
+          autoSubmitExam();
+        }
+        return;
+      }
+      
+      // Update remaining time
+      const remainingSecondsCalc = Math.floor(remainingMs / 1000);
+      setRemainingSeconds(remainingSecondsCalc);
+      setRemainingTime(formatTime(remainingSecondsCalc));
+    };
+    
+    // Update immediately
+    updateTimer();
+    
+    // Set interval for updates
+    timerIntervalRef.current = setInterval(updateTimer, 1000);
+  };
+
+  // Watch for remainingSeconds to trigger auto-submit
+  useEffect(() => {
+    if (remainingSeconds === 0 && !hasSubmittedRef.current && !autoSubmitTriggeredRef.current && examEndTime) {
+      console.log("Remaining seconds reached 0 - triggering auto-submit");
+      autoSubmitTriggeredRef.current = true;
+      autoSubmitExam();
+    }
+  }, [remainingSeconds, examEndTime]);
 
   // ================= FETCH DATA ==================
   useEffect(() => {
@@ -92,6 +250,7 @@ const QuestionPaper = () => {
         // Set exam ID first, then get exam data
         setExamId(id);
         await getExam(id);
+        
       } catch (err) {
         console.error("Error in fetchData", err);
         setError("Failed to load exam data: " + (err.response?.data?.message || err.message));
@@ -105,28 +264,46 @@ const QuestionPaper = () => {
     // Cleanup on unmount
     return () => {
       cleanupIntervals();
+      window.onbeforeunload = null;
     };
   }, [id, navigate]);
+
+  // Handle page refresh/beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (window.opener) {
+        window.opener.location.reload();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Get User Details
   const getUserDetails = async (userId) => {
     try {
-      // Validate userId before making API call
       if (!userId || userId === 'undefined' || userId.toString().trim() === '') {
         console.error("Invalid user ID provided:", userId);
         return;
       }
 
       console.log("Fetching user details for ID:", userId);
-      const resp = await apiService.get(`/auth/profile/${userId}`);
-      if (resp.data) {
+      const resp = await apiService.get(`/user/${userId}`);
+      if (resp && resp.data) {
         setUserName(resp.data.full_name || resp.data.name || '');
         setUserImage(resp.data.profile_photo || '');
         console.log("User details loaded:", resp.data);
+      } else if (resp) {
+        setUserName(resp.full_name || resp.name || '');
+        setUserImage(resp.profile_photo || '');
+        console.log("User details loaded:", resp);
       }
     } catch (err) {
       console.error("Error fetching user details", err);
-      // Don't throw error, just log it since user details are not critical for exam functionality
     }
   };
 
@@ -142,52 +319,53 @@ const QuestionPaper = () => {
       const resp = await apiService.get(`/exam/${examId}`);
       const examData = resp.data;
       
-      console.log("Exam data received:", examData);
+      console.log("Complete exam data received:", examData);
       
       setExam(examData);
-      setExamName(examData.exam_name);
-
-      // Timer Setup - matching Angular logic
-      const examEndTime = new Date(examData.endTime);
-      examEndTime.setHours(examEndTime.getHours() - 5); // Subtract 5 hours for IST
-      examEndTime.setMinutes(examEndTime.getMinutes() - 30); // Subtract 30 minutes for IST
-      setEndTime(examEndTime);
-      
-      // Start remaining time interval - only once
-      if (!remainingTimeIntervalRef.current) {
-        remainingTimeIntervalRef.current = setInterval(() => {
-          calculateRemainingTime(examEndTime);
-        }, 1000);
-      }
+      setExamName(examData.exam_name || examData.name || '');
 
       // Set exam details
-      setCourseType(examData.course_type);
-      setCourseName(examData.course_name);
-      
-      // Calculate timer difference like Angular
-      const startTime = new Date(examData.exam_date);
-      const currentTime = new Date();
-      const endTimeCalc = new Date(examData.exam_date);
-      
-      startTime.setHours(examData.exam_time.split(":")[0]);
-      startTime.setMinutes(examData.exam_time.split(":")[1]);
-      
-      const dif = endTimeCalc.getTime() - currentTime.getTime();
-      const secondsFromT1ToT2 = dif / 1000;
-      const timeDifference = Math.abs(secondsFromT1ToT2);
-      setTimer(timeDifference);
-      
-      console.log("Time difference:", dif);
+      setCourseType(examData.course_type || '');
+      setCourseName(examData.course_name || '');
+      setBatchName(examData.batch_name || '');
 
-      // Pass examId explicitly to getQuestions
+      // Parse duration from exam data
+      let durationDisplay = "90 Mins.";
+      if (examData.duration) {
+        if (typeof examData.duration === 'number') {
+          durationDisplay = `${examData.duration} Mins.`;
+        } else {
+          durationDisplay = examData.duration;
+        }
+      } else if (examData.exam_duration) {
+        durationDisplay = `${examData.exam_duration} Mins.`;
+      } else if (examData.time_duration) {
+        durationDisplay = `${examData.time_duration} Mins.`;
+      }
+      setDuration(durationDisplay);
+
+      // Calculate and set exam end time
+      const endTime = calculateExamEndTime(examData);
+      setExamEndTime(endTime);
+
+      // Start the timer
+      startTimer(endTime);
+
+      // Get questions after exam data is loaded
       await getQuestions(examData, examId);
+      
+      // Initialize activity logging after all data is loaded
+      setTimeout(() => {
+        logAnswer();
+      }, 1000);
+      
     } catch (err) {
       console.error("Error fetching exam", err);
       setError("Failed to load exam: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // Get Questions - matching Angular approach with proper validation
+  // Get Questions
   const getQuestions = async (examData, currentExamId) => {
     try {
       console.log("Getting questions for exam ID:", currentExamId);
@@ -201,7 +379,6 @@ const QuestionPaper = () => {
       const userId = getUserId(userData);
       console.log("User ID for questions:", userId);
       
-      // Validate all required parameters
       if (!currentExamId || currentExamId.trim() === '' || currentExamId === 'undefined') {
         throw new Error("Exam ID is required and cannot be empty");
       }
@@ -215,7 +392,7 @@ const QuestionPaper = () => {
         course_type: examData.course_type,
         course_name: examData.course_name,
         user_id: userId.toString(),
-        exam_id: currentExamId.trim() // Ensure no whitespace
+        exam_id: currentExamId.trim()
       });
 
       console.log("API call with params:", queryParams.toString());
@@ -241,13 +418,10 @@ const QuestionPaper = () => {
       setCurrentQuestion(questions[0]);
       setQuestionCount(questions.length);
       
+      // Initialize counters
+      updateQuestionCounters(questions);
+      
       console.log("Questions loaded successfully:", questions.length);
-      
-      if (resp.data.message === "New questions") {
-        console.log("New questions loaded");
-      }
-      
-      startTimer();
 
     } catch (err) {
       console.error("Error fetching questions details:", err);
@@ -255,241 +429,276 @@ const QuestionPaper = () => {
     }
   };
 
-  // ================= TIMER =================
-  const calculateRemainingTime = (endTime) => {
-    if (hasSubmittedRef.current) return;
-
-    const now = new Date();
-    const remainTimeInSeconds = endTime.getTime() - now.getTime();
+  // Update question counters
+  // const updateQuestionCounters = (questions) => {
+  //   const notViewedCount = questions.filter(q => !q.seen && q.status === "unanswered").length;
+  //   const viewedCount = questions.filter(q => q.seen && q.status === "unanswered").length;
+  //   const answeredCount = questions.filter(q => q.status === "answered").length;
     
-    if (remainTimeInSeconds <= 0) {
-      setRemainingTime("00:00:00");
-      if (!hasSubmittedRef.current) {
-        console.log("Time expired - auto submitting exam");
-        hasSubmittedRef.current = true;
-        submitExam();
+  //   setNotViewed(notViewedCount);
+  //   setViewed(viewedCount);
+  //   setAnswered(answeredCount);
+  // };
+
+  // Auto Submit when time expires
+  const autoSubmitExam = async () => {
+    try {
+      console.log("Auto-submitting exam due to time expiry");
+      hasSubmittedRef.current = true; // Set this immediately
+      
+      const userData = JSON.parse(localStorage.getItem("user"));
+      if (!userData?.mobile || !getUserId(userData)) {
+        console.error("User session invalid during auto-submit");
+        alert("Time expired! Session invalid. Please login again.");
+        navigate("/studentlogin");
+        return;
       }
-      return;
+
+      const payload = {
+        user_id: getUserId(userData),
+        mobile: userData.mobile,
+        exam_id: id,
+      };
+
+      console.log("Auto-submitting payload:", payload);
+
+      const resp = await apiService.post("/exam/finalExamSubmit", payload);
+
+      if (resp.data?.success) {
+        setSubmitFinalExam(true);
+        setUserSubmit(false);
+        alert("Time expired! Your exam has been auto-submitted.");
+      } else {
+        console.error("Auto-submit failed:", resp.data);
+        alert("Time expired! Failed to auto-submit: " + (resp.data?.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Auto-submit failed:", err);
+      alert("Time expired! Failed to auto-submit exam: " + (err.response?.data?.message || err.message));
     }
-
-    const remainTime = new Date(remainTimeInSeconds);
-    const hours = String(remainTime.getUTCHours()).padStart(2, "0");
-    const minutes = String(remainTime.getUTCMinutes()).padStart(2, "0");
-    const seconds = String(remainTime.getUTCSeconds()).padStart(2, "0");
-
-    const timeString = `${hours}:${minutes}:${seconds}`;
-    setRemainingTime(timeString);
-    console.log("Remaining time:", timeString);
   };
 
-  // Start Timer - matching Angular logic
-  const startTimer = () => {
-    // Clear existing timer if any
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
+  // Submit Exam function
+  const submitExam = async () => {
+    try {
+      console.log("Submit Exam button clicked");
+
+      // Prevent multiple submissions
+      if (hasSubmittedRef.current) {
+        console.log("Exam already submitted, ignoring duplicate submission");
+        return;
+      }
+
+      hasSubmittedRef.current = true;
+      cleanupIntervals(); // Stop the timer
+
+      const userData = JSON.parse(localStorage.getItem("user"));
+      if (!userData?.mobile || !getUserId(userData)) {
+        alert("User session invalid. Please login again.");
+        navigate("/studentlogin");
+        return;
+      }
+
+      const payload = {
+        user_id: getUserId(userData),
+        mobile: userData.mobile,
+        exam_id: id,
+      };
+
+      console.log("Submitting payload:", payload);
+
+      const resp = await apiService.post("/exam/finalExamSubmit", payload);
+
+      if (resp.data?.success) {
+        setSubmitFinalExam(true);
+        setUserSubmit(false);
+      } else {
+        hasSubmittedRef.current = false; // Reset on failure
+        alert("Failed: " + (resp.data?.message || "Unknown error"));
+      }
+    } catch (err) {
+      hasSubmittedRef.current = false; // Reset on failure
+      console.error("Submit exam failed", err);
+      alert("Failed to submit exam: " + (err.response?.data?.message || err.message));
     }
-
-    console.log("Starting timer with initial value:", timer);
-
-    timerIntervalRef.current = setInterval(() => {
-      setTimer(prevTimer => {
-        if (prevTimer > 0) {
-          return prevTimer - 1;
-        } else {
-          // Clear intervals and submit
-          console.log("Timer expired - preparing to submit");
-          cleanupIntervals();
-          if (!hasSubmittedRef.current) {
-            hasSubmittedRef.current = true;
-            setUserSubmit(true);
-            setGoBackButton(false);
-          }
-          return 0;
-        }
-      });
-    }, 1000);
-  };
-
-  // Get Timer Display
-  const getTimer = () => {
-    const hours = Math.floor(timer / (60 * 60));
-    const minutes = Math.floor(timer / 60 - hours * 60);
-    const seconds = Math.floor(timer - minutes * 60 - hours * 60 * 60);
-    return `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
   };
 
   // ================= QUESTION NAVIGATION =================
   const previousQuestion = () => {
     const currentIndex = questionList.indexOf(currentQuestion);
-    if (currentIndex > 0) {
-      setCurrentQuestion(questionList[currentIndex - 1]);
+    const newIndex = currentIndex - 1;
+    if (newIndex >= 0) {
+      setCurrentQuestion(questionList[newIndex]);
       setGlobalIndex(globalIndex - 1);
     }
   };
 
   const nextQuestion = () => {
+    // Mark current question as seen
+    const updatedQuestion = { ...currentQuestion, seen: true };
     const currentIndex = questionList.indexOf(currentQuestion);
-    if (currentIndex < questionList.length - 1) {
-      // Update viewed count logic
-      const updatedQuestion = { ...currentQuestion, seen: true };
-      const updatedQuestions = [...questionList];
-      updatedQuestions[currentIndex] = updatedQuestion;
-      setQuestionList(updatedQuestions);
-      
+    const updatedQuestions = [...questionList];
+    updatedQuestions[currentIndex] = updatedQuestion;
+    setQuestionList(updatedQuestions);
+    
+    const newIndex = currentIndex + 1;
+    if (newIndex < questionCount) {
       setGlobalIndex(globalIndex + 1);
-      setCurrentQuestion(questionList[currentIndex + 1]);
+      setCurrentQuestion(questionList[newIndex]);
+      
+      // Update counters
+      updateQuestionCounters(updatedQuestions);
     }
   };
 
   const submitAndNext = () => {
-    logAnswer();
     nextQuestion();
   };
 
   // Set question as seen
   const seenQuestion = () => {
     setCurrentQuestion(prev => ({ ...prev, seen: true }));
+    return true;
   };
 
   // ================= ANSWER HANDLING =================
-  const saveAnswer = async (opt) => {
-    try {
-      let updatedQuestion = { ...currentQuestion };
+ // ================= ANSWER HANDLING =================
+const saveAnswer = async (opt) => {
+  try {
+    let updatedQuestion = { ...currentQuestion };
+    let answeredChange = 0;
 
-      if (updatedQuestion.status === "unanswered") {
-        updatedQuestion.selectedAnswer = opt;
-        updatedQuestion.seen = true;
-        updatedQuestion.status = "answered";
-      } else if (
-        updatedQuestion.status === "answered" &&
-        updatedQuestion.selectedAnswer === opt
-      ) {
+    // Fixed logic based on Angular implementation
+    if (updatedQuestion.status === "unanswered" || !updatedQuestion.status) {
+      // Selecting an answer for the first time
+      updatedQuestion.selectedAnswer = opt;
+      updatedQuestion.seen = true;
+      updatedQuestion.status = "answered";
+      answeredChange = 1;
+    } else if (updatedQuestion.status === "answered") {
+      if (updatedQuestion.selectedAnswer === opt) {
+        // Deselecting the currently selected answer
         updatedQuestion.selectedAnswer = null;
         updatedQuestion.status = "unanswered";
         updatedQuestion.seen = true;
-      } else if (
-        updatedQuestion.status === "answered" &&
-        updatedQuestion.selectedAnswer !== opt
-      ) {
+        answeredChange = -1;
+      } else {
+        // Changing to a different answer
         updatedQuestion.selectedAnswer = opt;
         updatedQuestion.seen = true;
+        // Status remains "answered", no change in count
       }
-
-      // Update question list
-      const currentIndex = questionList.indexOf(currentQuestion);
-      const updatedQuestions = [...questionList];
-      updatedQuestions[currentIndex] = updatedQuestion;
-      setQuestionList(updatedQuestions);
-      setCurrentQuestion(updatedQuestion);
-
-      // Log activity and sync answer
-      await syncAnswer(updatedQuestion);
-
-    } catch (err) {
-      console.error("Error saving answer", err);
-      alert("Failed to save answer: " + (err.response?.data?.message || err.message));
-    }
-  };
-
-  // Log Answer Activity
-  const logAnswer = async () => {
-    try {
-      if (!currentQuestion || !user || !examId) {
-        console.log("Missing data for logging:", { currentQuestion: !!currentQuestion, user: !!user, examId });
-        return;
-      }
-
-      const userId = getUserId(user);
-      // Validate user ID
-      if (!userId || userId === 'undefined') {
-        console.error("Invalid user ID for logging:", user);
-        return;
-      }
-
-      const data = {
-        user_id: userId.toString(),
-        user_name: user.full_name || user.name || '',
-        exam_id: examId,
-        exam_name: exam?.exam_name,
-        question_id: currentQuestion._id,
-        status: currentQuestion.status,
-        answered: currentQuestion.answered,
-        answer: currentQuestion.selectedAnswer,
-      };
-
-      await apiService.post("/activityLog", data);
-      console.log("Activity logged successfully");
-    } catch (err) {
-      console.error("Error logging answer activity", err);
-    }
-  };
-
-  // Sync Answer to Backend
-  const syncAnswer = async (question) => {
-    try {
-      const userData = JSON.parse(localStorage.getItem("user"));
-      if (!isValidUser(userData) || !examId || !exam) {
-        console.log("Missing data for sync:", { userData: !!userData, examId, exam: !!exam });
-        return;
-      }
-
-      const userId = getUserId(userData);
-
-      const data = {
-        user_id: userId.toString(),
-        user_name: userData.full_name || userData.name || '',
-        exam_id: examId,
-        exam_name: exam.exam_name,
-        question_id: question.question_id || question._id,
-        seen: question.seen,
-        question: question.question,
-        userAnswer: question.selectedAnswer,
-        status: question.status,
-      };
-
-      await apiService.post("/answerSheet", data);
-      console.log("Answer synced successfully");
-    } catch (err) {
-      console.error("Error syncing answer", err);
-    }
-  };
-
-  // ================= SUBMIT HANDLING =================
-  const submitExam = async () => {
-  try {
-    console.log("Submit Exam button clicked");
-
-    const userData = JSON.parse(localStorage.getItem("user"));
-    if (!userData?.mobile || !userData?._id) {
-      alert("User session invalid. Please login again.");
-      navigate("/studentlogin");
-      return;
     }
 
-    const payload = {
-      user_id: userData._id,
-      mobile: userData.mobile,
-      exam_id: id, // ✅ use 'id' from useParams
-    };
+    // Update answered count
+    setAnswered(prev => prev + answeredChange);
 
-    console.log("Submitting payload:", payload);
+    // Update question list
+    const currentIndex = questionList.indexOf(currentQuestion);
+    const updatedQuestions = [...questionList];
+    updatedQuestions[currentIndex] = updatedQuestion;
+    setQuestionList(updatedQuestions);
+    setCurrentQuestion(updatedQuestion);
 
-    const resp = await apiService.post("/exam/finalExamSubmit", payload);
+    // Update counters
+    updateQuestionCounters(updatedQuestions);
+    
+    // Log activity and sync answer
+    await logAnswer();
+    await syncAnswer();
 
-    if (resp.data?.success) {
-      alert("Exam submitted successfully!");
-      navigate("/student-exam-submit");
-    } else {
-      alert("Failed: " + (resp.data?.message || "Unknown error"));
-    }
   } catch (err) {
-    console.error("Submit exam failed", err);
-    alert("Failed to submit exam: " + (err.response?.data?.message || err.message));
+    console.error("Error saving answer", err);
+    alert("Failed to save answer: " + (err.response?.data?.message || err.message));
   }
 };
 
+// Log Answer Activity - Fixed
+const logAnswer = async () => {
+  try {
+    if (!currentQuestion || !user || !examId) {
+      console.log("Missing data for logging:", { currentQuestion: !!currentQuestion, user: !!user, examId });
+      return;
+    }
 
+    const userId = getUserId(user);
+    if (!userId || userId === 'undefined') {
+      console.error("Invalid user ID for logging:", user);
+      return;
+    }
 
+    const data = {
+      user_id: userId.toString(),
+      user_name: user.full_name || user.name || '',
+      exam_id: examId,
+      exam_name: exam?.exam_name,
+      question_id: currentQuestion._id,
+      status: currentQuestion.status, // This should now be "answered" or "unanswered" correctly
+      answered: currentQuestion.status === "answered", // Boolean value
+      answer: currentQuestion.selectedAnswer, // This should be the selected option (1, 2, 3, 4)
+    };
+
+    await apiService.post("activityLog", data);
+    console.log("Activity logged successfully with data:", data);
+  } catch (err) {
+    console.error("Error logging answer activity", err);
+  }
+};
+
+// Sync Answer to Backend - Fixed
+const syncAnswer = async () => {
+  try {
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (!isValidUser(userData) || !examId || !exam) {
+      console.log("Missing data for sync:", { userData: !!userData, examId, exam: !!exam });
+      return;
+    }
+
+    const userId = getUserId(userData);
+
+    const data = {
+      user_id: userId.toString(),
+      user_name: userData.full_name || userData.name || '',
+      exam_id: examId,
+      exam_name: exam.exam_name,
+      question_id: currentQuestion.question_id || currentQuestion._id,
+      seen: currentQuestion.seen,
+      question: currentQuestion.question,
+      userAnswer: currentQuestion.selectedAnswer, // This should be the selected option
+      status: currentQuestion.status, // This should be "answered" or "unanswered"
+    };
+
+    console.log("Syncing answer data:", data);
+    await apiService.post("answerSheet", data);
+    console.log("Answer synced successfully");
+  } catch (err) {
+    console.error("Error syncing answer", err);
+  }
+};
+
+// Helper function to get user ID - handles both _id and id formats
+const getUserId = (userData) => {
+  return userData?.id || userData?._id;
+};
+
+// Helper function to validate user data
+const isValidUser = (userData) => {
+  const userId = getUserId(userData);
+  return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
+};
+
+// Update question counters
+const updateQuestionCounters = (questions) => {
+  const notViewedCount = questions.filter(q => !q.seen && q.status === "unanswered").length;
+  const viewedCount = questions.filter(q => q.seen && q.status === "unanswered").length;
+  const answeredCount = questions.filter(q => q.status === "answered").length;
+  
+  setNotViewed(notViewedCount);
+  setViewed(viewedCount);
+  setAnswered(answeredCount);
+};
+
+  // ================= SUBMIT HANDLING =================
   const handleSubmit = () => {
     setUserSubmit(true);
   };
@@ -521,7 +730,13 @@ const QuestionPaper = () => {
   };
 
   const getQuestionIndex = () => {
-    const currentIndex = questionList.indexOf(currentQuestion);
+    let currentIndex = -1;
+    for (let i = 0; i < questionList?.length; i++) {
+      if (questionList[i]._id === currentQuestion._id) {
+        currentIndex = i;
+        break;
+      }
+    }
     return currentIndex + 1;
   };
 
@@ -530,9 +745,10 @@ const QuestionPaper = () => {
   };
 
   const getNotVisitedQuestionCount = () => {
-    return questionList?.filter(
+    const count = questionList?.filter(
       (question) => !question.seen && question.status === "unanswered"
     ).length || 0;
+    return count;
   };
 
   const getViewedQuestionCount = () => {
@@ -549,6 +765,24 @@ const QuestionPaper = () => {
     if (!question.seen) {
       seenQuestion();
     }
+  };
+
+  // Check if all questions are answered for auto-submit option
+  const areAllQuestionsAnswered = () => {
+    return questionList.every(q => q.status === "answered");
+  };
+
+  // Format exam date and time for display
+  const formatExamDateTime = () => {
+    if (!exam?.exam_date) return "";
+    
+    const examDate = new Date(exam.exam_date);
+    const dateStr = examDate.toLocaleDateString();
+    
+    if (exam.exam_time) {
+      return `${dateStr} at ${exam.exam_time}`;
+    }
+    return dateStr;
   };
 
   // ================= RENDER =================
@@ -594,13 +828,18 @@ const QuestionPaper = () => {
               <div className="mb-4 md:mb-0">
                 <h1 className="text-2xl font-bold">
                   <i className="fas fa-file-alt mr-2"></i>
-                  {exam?.exam_name}
+                  {exam?.exam_name || exam?.name}
                 </h1>
                 <p className="text-blue-100 mt-1">
-                  Exam Code: {exam?.exam_code} | 
-                  Date: {new Date(exam?.exam_date).toLocaleDateString()} | 
+                  {exam?.exam_code && `Exam Code: ${exam.exam_code} | `}
+                  {formatExamDateTime()} | 
                   Duration: {duration}
                 </p>
+                {exam?.course_name && (
+                  <p className="text-blue-200 text-sm">
+                    Course: {exam.course_name} {exam.batch_name && `| Batch: ${exam.batch_name}`}
+                  </p>
+                )}
               </div>
               <div className="flex items-center">
                 <div className="text-right mr-3">
@@ -631,11 +870,19 @@ const QuestionPaper = () => {
               </div>
               <div className="text-center">
                 <span className="text-sm text-gray-300">Time Remaining</span>
-                <p className="font-bold text-yellow-300">{remainingTime}</p>
+                <p className={`font-bold text-lg ${
+                  remainingTime === "00:00:00" ? "text-red-400 animate-pulse" : 
+                  remainingTime.startsWith("00:") && parseInt(remainingTime.split(":")[1]) < 5 ? "text-orange-400" :
+                  "text-yellow-300"
+                }`}>
+                  {remainingTime}
+                </p>
               </div>
               <div className="text-center">
-                <span className="text-sm text-gray-300">Timer</span>
-                <p className="font-bold text-red-300">{getTimer()}</p>
+                <span className="text-sm text-gray-300">Status</span>
+                <p className="font-bold text-green-300">
+                  {hasSubmittedRef.current ? "Submitted" : "In Progress"}
+                </p>
               </div>
             </div>
           </div>
@@ -775,9 +1022,9 @@ const QuestionPaper = () => {
                     ) : (
                       <button 
                         className="px-5 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
-                        onClick={submitExam}
+                        onClick={handleSubmit}
                       >
-                        FINAL SUBMIT
+                        SUBMIT
                       </button>
                     )}
                   </div>
@@ -852,6 +1099,22 @@ const QuestionPaper = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Optional: Show progress and submit early if all answered */}
+                  {areAllQuestionsAnswered() && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center text-green-700">
+                        <i className="fas fa-check-circle mr-2"></i>
+                        <span className="text-sm">All questions answered!</span>
+                      </div>
+                      <button 
+                        className="mt-2 w-full px-3 py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700"
+                        onClick={handleSubmit}
+                      >
+                        Submit Exam Early
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -873,7 +1136,12 @@ const QuestionPaper = () => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start">
                   <i className="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
-                  <p className="text-blue-700">Are you sure you want to submit your exam? This action cannot be undone.</p>
+                  <div>
+                    <p className="text-blue-700 mb-2">Are you sure you want to submit your exam? This action cannot be undone.</p>
+                    <p className="text-blue-600 text-sm">
+                      Time remaining: <span className="font-bold">{remainingTime}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
               
@@ -945,8 +1213,9 @@ const QuestionPaper = () => {
                 <button 
                   className="px-5 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
                   onClick={handleBackToHome}
+                  disabled={hasSubmittedRef.current}
                 >
-                  Submit Exam
+                  {hasSubmittedRef.current ? "Submitting..." : "Submit Exam"}
                 </button>
               </div>
             </div>

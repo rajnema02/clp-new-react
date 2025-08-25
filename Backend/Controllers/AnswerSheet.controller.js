@@ -240,7 +240,7 @@ module.exports = {
       const examId = data.exam_id;
       // console.log(examId)
       const exam = await ExamModel.findOne({
-        _id: mongoose.Types.ObjectId(examId),
+        _id: new mongoose.Types.ObjectId(examId),
       });
       const batchIds = exam.batch_id;
       allStudents = [];
@@ -248,7 +248,7 @@ module.exports = {
       for (let bId of batchIds) {
         const matchedStudents = await UserModel.aggregate([
           {
-            $match: { batch: mongoose.Types.ObjectId(bId) },
+            $match: { batch: new mongoose.Types.ObjectId(bId) },
           },
         ]);
         // console.log(matchedStudents);
@@ -264,7 +264,7 @@ module.exports = {
       for (let student of allStudents) {
         var matchQuery = {
           user_id: student._id,
-          exam_id: mongoose.Types.ObjectId(examId),
+          exam_id: new mongoose.Types.ObjectId(examId),
           // user_id: mongoose.Types.ObjectId('6458bdc4b78bea542ea397ac'),
           // exam_id: mongoose.Types.ObjectId('6458c166b78bea542ea3986a')
         };
@@ -738,4 +738,26 @@ module.exports = {
       next(error);
     }
   },
+  checkIfAlreadyProcessed: async (req, res, next) => {
+    try {
+      const { examId } = req.query; // from frontend request
+      if (!examId) {
+        return res.status(400).json({ success: false, message: "examId is required" });
+      }
+  
+      // Check if any exam reports exist for this exam
+      const reportExists = await ExamReportModel.findOne({
+        Exam_id: new mongoose.Types.ObjectId(examId),
+      });
+  
+      if (reportExists) {
+        return res.json({ success: true, message: "Reports already processed" });
+      } else {
+        return res.json({ success: false, message: "Reports not processed yet" });
+      }
+    } catch (error) {
+      next(error);
+    }
+  },
 };
+

@@ -28,19 +28,19 @@ module.exports = {
       const { exam_id } = req.query;
       console.log(exam_id);
       const resultList = await Model.find({
-        Exam_id: mongoose.Types.ObjectId(exam_id),
+        Exam_id: new mongoose.Types.ObjectId(exam_id),
       });
       // console.log("this is result list", resultList);
       if (resultList.length > 0) {
         const count = resultList.length;
         const passedList = await Model.find({
           Result: "Pass",
-          Exam_id: mongoose.Types.ObjectId(exam_id),
+          Exam_id: new mongoose.Types.ObjectId(exam_id),
         });
         const passedCount = passedList.length;
         const failedList = await Model.find({
           Result: "Fail",
-          Exam_id: mongoose.Types.ObjectId(exam_id),
+          Exam_id: new mongoose.Types.ObjectId(exam_id),
         });
         const failedCount = failedList.length;
         res.json({
@@ -59,24 +59,32 @@ module.exports = {
     }
   },
   passedList: async (req, res, next) => {
-    try {
-      const { exam_id } = req.query;
-      const studentList = await Model.find({
-        Result: "Pass",
-        Exam_id: mongoose.Types.ObjectId(exam_id),
-      });
-      if (studentList) {
-        const count = studentList.length;
-        res.json({ TotalCount: count, PassedStudentList: studentList });
-        return;
-      } else {
-        res.json({ message: "No passed students found" });
-        return;
-      }
-    } catch (next) {
-      nerxt(error);
+  try {
+    const { exam_id } = req.query;
+
+    if (!exam_id) {
+      return res.status(400).json({ success: false, message: "exam_id is required" });
     }
-  },
+
+    const studentList = await Model.find({
+      Result: "Pass",
+      Exam_id: new mongoose.Types.ObjectId(exam_id),
+    });
+
+    if (studentList && studentList.length > 0) {
+      return res.json({
+        success: true,
+        TotalCount: studentList.length,
+        PassedStudentList: studentList,
+      });
+    } else {
+      return res.json({ success: true, message: "No passed students found", TotalCount: 0, PassedStudentList: [] });
+    }
+  } catch (error) {
+    console.error("Error in passedList:", error);
+    next(error); // now works correctly
+  }
+},
   failedList: async (req, res, next) => {
     try {
       const { exam_id } = req.query;

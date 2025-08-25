@@ -3,48 +3,31 @@ import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 
 const InstructionPage = () => {
-  const [examId, setExamId] = useState(null);
   const [examData, setExamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { id } = useParams(); // Get exam ID from URL params if available
+  const { id: examId } = useParams(); // ✅ Always get examId from URL
 
   useEffect(() => {
     const fetchExamData = async () => {
       try {
-        let examIdToUse = null;
-
-        // First try to get exam ID from session storage
-        const storedId = sessionStorage.getItem("examId");
-        
-        // If not in session storage, try to get from URL params
-        if (!storedId && id) {
-          examIdToUse = id;
-          sessionStorage.setItem("examId", id); // Store for future use
-        } else if (storedId) {
-          examIdToUse = storedId;
+        if (!examId) {
+          throw new Error("Exam ID not found in URL. Please navigate from the exam list.");
         }
-
-        if (!examIdToUse) {
-          throw new Error("Exam ID not found. Please navigate from the exam list.");
-        }
-
-        setExamId(examIdToUse);
 
         // Get access token
         const accessToken = localStorage.getItem("accessToken");
-        
         if (!accessToken) {
           throw new Error("Authentication required. Please login again.");
         }
 
-        // Fetch exam data from API
-        const response = await axios.get(`/exam/getExamById/${examIdToUse}`, {
+        // Fetch exam data
+        const response = await axios.get(`/exam/getExamById/${examId}`, {
           headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
-        
+
         setExamData(response.data);
         setLoading(false);
       } catch (err) {
@@ -55,7 +38,7 @@ const InstructionPage = () => {
     };
 
     fetchExamData();
-  }, [id]);
+  }, [examId]);
 
   if (loading) {
     return (
@@ -115,7 +98,11 @@ const InstructionPage = () => {
             <div className="col-6">Duration</div>
             <div className="col-6">{examData?.exam_duration || 90} minutes</div>
             <div className="col-6">Date</div>
-            <div className="col-6">{examData?.exam_date ? new Date(examData.exam_date).toLocaleDateString() : "N/A"}</div>
+            <div className="col-6">
+              {examData?.exam_date
+                ? new Date(examData.exam_date).toLocaleDateString()
+                : "N/A"}
+            </div>
             <div className="col-6">Time</div>
             <div className="col-6">{examData?.exam_time || "N/A"}</div>
           </div>

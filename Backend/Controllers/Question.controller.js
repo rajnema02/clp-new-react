@@ -32,6 +32,35 @@ module.exports = {
     }
   },
 
+   getByCourse: async (req, res, next) => {
+    try {
+      const { course_type, course_name, exam_id, user_id } = req.query;
+
+      if (!course_type || !course_name) {
+        throw createError.BadRequest("Course type and course name are required");
+      }
+
+      const query = {
+        course_type,
+        course_name,
+        is_inactive: false,
+      };
+
+      if (exam_id) query.exam_id = exam_id;
+      if (user_id) query.user_id = user_id;
+
+      const result = await Model.find(query).sort({ created_at: -1 });
+
+      if (!result || result.length === 0) {
+        throw createError.NotFound("No questions found for this course");
+      }
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   get: async (req, res, next) => {
     try {
       const { id } = req.params;

@@ -7,6 +7,7 @@ router.post('/uploadQuestions', verifyAccessToken, Controller.uploadQuestions);
 router.post('/', verifyAccessToken, Controller.create);
 router.get('/:id',verifyAccessToken,  Controller.get);
 router.get('/',verifyAccessToken,  Controller.list);
+// router.get('/',verifyAccessToken,  Controller.getByCourse);
 router.put('/:id',verifyAccessToken,  Controller.update);
 router.delete('/:id', verifyAccessToken, Controller.delete);
 

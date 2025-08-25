@@ -156,7 +156,7 @@ const ExamList = () => {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => navigate(`/exam/result-list/${exam._id}`)}
+                                onClick={() => navigate(`/result-list/${exam._id}`)}
                               >
                                 Show Result
                               </Button>

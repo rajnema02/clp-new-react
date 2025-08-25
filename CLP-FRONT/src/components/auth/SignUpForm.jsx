@@ -50,14 +50,15 @@ export default function SignUpForm() {
         full_name: userData.full_name,
         email: userData.email,
         mobile: userData.mobile,
-        role: userData.role
+        role: userData.role,
+        
       }));
+      toast.success("Account created successfully!");
+      navigate("/login");
 
       localStorage.setItem("studentId", userData._id);
       localStorage.removeItem("admin");
 
-      toast.success("Account created successfully!");
-      setTimeout(() => navigate("/login"), 1500);
     } catch (error) {
       const errorMsg =
         error.response?.data?.message ||

@@ -52,7 +52,7 @@ export default function UserDropdown() {
       }
 
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-      const profileUrl = `${baseUrl}/auth/profile/${userId}`;
+      const profileUrl = `${baseUrl}/user/${userId}`;
 
       try {
         const response = await fetch(profileUrl, {

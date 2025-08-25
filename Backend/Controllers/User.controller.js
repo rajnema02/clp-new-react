@@ -27,56 +27,56 @@ module.exports = {
   //////////////////  pre register user  ////////////////////
 
   reg: async (req, res, next) => {
-    try {
-      uploadImage(req, res, async (err) => {
-        if (err) {
-          return res.status(501).json({ error: err });
+  try {
+    uploadImage(req, res, async (err) => {
+      if (err) {
+        return res.status(501).json({ error: err });
+      }
+      const data = req.body;
+      console.log(data);
+      try {
+        const dataExists = await Model.findOne({
+          $or: [{ email: data.email }, { mobile: data.mobile }],
+          is_inactive: false,
+        }).lean();
+
+        if (dataExists) {
+          throw createError.Conflict(
+            `${ModelName} already exists with email/mobile`
+          );
         }
-        const data = req.body;
-        console.log(data);
-        try {
-          const dataExists = await Model.findOne({
-            $or: [{ email: data.email }, { mobile: data.mobile }],
-            is_inactive: false,
-          }).lean();
-          if (dataExists) {
-            throw createError.Conflict(
-              `${ModelName} already exists with email/mobile`
-            );
-          }
-          // const smsResponse = await smsReg(data.mobile);
-          // console.log("REG_SMS ", smsResponse.data);
 
-          const otp = generateOTP()
-          if (data.mobile) {
-            console.log("OTP_SMS ", otp);
-            // return
+        // Commenting out OTP section
+        // const otp = generateOTP();
+        // if (data.mobile) {
+        //   console.log("OTP_SMS ", otp);
+        //   const smsResponse = await smsOTP(data.mobile, otp);
+        //   console.log("OTP_SMS ", smsResponse.data);
+        // }
+        data.created_at = Date.now();
+        // data.mobileOtp = otp;
 
-            const smsResponse = await smsOTP(data.mobile, otp)
-            console.log("OTP_SMS ", smsResponse.data);
-            // ********************
-          }
-          // return
-          data.created_at = Date.now();
-          data.mobileOtp = otp
-          const newData = new Model(data);
-          const result = await newData.save();
-          // if (data.mobile) {
-          //   const smsResponse = await smsReg(data.mobile);
-          //   console.log("REG_SMS ", smsResponse.data);
-          // }
-          res.json(newData);
+        const newData = new Model(data);
+        const result = await newData.save();
 
-          return;
-        } catch (error) {
-          next(error);
-          return;
-        }
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
+        // ✅ send structured response
+        res.status(200).json({
+          message: "Account created successfully!",
+          user: result,
+          // token: "dummyToken", // later replace with real JWT if you want
+        });
+
+        return;
+      } catch (error) {
+        next(error);
+        return;
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+},
+
 
   userLogin: async (req, res, next) => {
   try {

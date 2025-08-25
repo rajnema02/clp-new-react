@@ -140,7 +140,7 @@ const DashboardTable = () => {
     if (window.confirm("Are you sure !!! You want to verify this form")) {
       try {
         const queryData = { is_profileVerified: true };
-        await apiService.put("user", id, queryData);
+        await apiService.put(`user/${id}`, queryData);
         fetchUserList();
       } catch (error) {
         console.error("Error verifying profile:", error);

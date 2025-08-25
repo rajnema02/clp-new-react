@@ -51,6 +51,8 @@ import DepartmentsCreate from "./pages/department/DepartmentsCreate";
 import InstructionsPage from "./student-pages/studentExam/InstructionsPage";
 import QuestionsPaper from "./student-pages/studentExam/QuestionsPaper";
 import StudentExamsSubmit from "./student-pages/studentExam/StudentExamsSubmit";
+import StudentResultsList from "./pages/Exam/ResultsList";
+import ResultsList from "./pages/Exam/ResultsList";
 
 const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -130,6 +132,7 @@ export default function App() {
             <Route path="/about-program-list" element={<AboutProgramsList />} />
             <Route path="/department-list" element={<DepartmentsList/>} />
             <Route path="/department-create" element={<DepartmentsCreate />} />
+            <Route path="/result-list/:id" element={<ResultsList/>} />
             {/* <Route path="/student-profile-form" element={<StudentsProfileForm />} /> */}
           </Route>
 
@@ -151,6 +154,7 @@ export default function App() {
             <Route path="/student-video-library" element={<StudentsVideoLibrary />} />
             <Route path="/student-instructions/:id?" element={<InstructionsPage />} />
             <Route path="/student-exam-submit" element={<StudentExamsSubmit />} />
+
           </Route>
             <Route path="/student-question-paper/:id" element={<QuestionsPaper/>} />
 
