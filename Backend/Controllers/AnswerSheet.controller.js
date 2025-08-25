@@ -122,7 +122,7 @@ module.exports = {
       const examId = data.exam_id;
       console.log(examId);
       const exam = await ExamModel.findOne({
-        _id: mongoose.Types.ObjectId(examId),
+        _id: new mongoose.Types.ObjectId(examId),
       });
       const batchIds = exam.batch_id;
       allStudents = [];
@@ -131,7 +131,7 @@ module.exports = {
       for (let bId of batchIds) {
         const matchedStudents = await UserModel.aggregate([
           {
-            $match: { batch: mongoose.Types.ObjectId(bId) },
+            $match: { batch: new mongoose.Types.ObjectId(bId) },
           },
         ]);
         allStudents = [...allStudents, ...matchedStudents];
@@ -148,7 +148,7 @@ module.exports = {
             if (parentExamReport.Result == "Fail") {
               const studentFound = await Model.findOne({
                 user_id: student._id,
-                exam_id: mongoose.Types.ObjectId(examId),
+                exam_id: new mongoose.Types.ObjectId(examId),
               });
 
               if (studentFound) {
@@ -189,7 +189,7 @@ module.exports = {
     try {
       const { exam_id } = req.query;
       const exam = await ExamModel.findOne({
-        _id: mongoose.Types.ObjectId(exam_id),
+        _id: new mongoose.Types.ObjectId(exam_id),
       });
       console.log(exam);
       const batchIds = exam.batch_id;
@@ -200,7 +200,7 @@ module.exports = {
       for (let bId of batchIds) {
         const matchedStudents = await UserModel.aggregate([
           {
-            $match: { batch: mongoose.Types.ObjectId(bId) },
+            $match: { batch: new mongoose.Types.ObjectId(bId) },
           },
         ]);
 

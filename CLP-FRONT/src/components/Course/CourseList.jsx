@@ -53,7 +53,7 @@ const CourseList = () => {
     <>
       <PageMeta
         title="Course List "
-        description="This is the course list page in TailAdmin"
+        description="This is the course list page in CLP"
       />
       <PageBreadcrumb pageTitle="Course List" />
 

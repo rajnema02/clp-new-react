@@ -37,8 +37,8 @@ const ModuleList = () => {
   return (
     <>
       <PageMeta
-        title="Module List | TailAdmin"
-        description="This is the module list page for TailAdmin"
+        title="Module List | CLP"
+        description="This is the module list page for CLP"
       />
       <PageBreadcrumb pageTitle="Modules" />
 

@@ -225,9 +225,9 @@ module.exports = {
       }
       query = {};
       if (batch_id) {
-        query.batch_id = mongoose.Types.ObjectId(batch_id);
+        query.batch_id = new mongoose.Types.ObjectId(batch_id);
       }
-      query.created_by= { $exists: true };
+      // query.created_by= { $exists: true };
       // const students = await User.find({ batch: { $in: [batch_id] } });
       // console.log("Students>>>>>", students.length);
       query.disable = (disable && disable == 'true') ? true : false

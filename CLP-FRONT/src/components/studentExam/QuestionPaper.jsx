@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiService from "../../Services/api.service";
@@ -12,7 +11,7 @@ const QuestionPaper = () => {
   const [questionList, setQuestionList] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [remainingTime, setRemainingTime] = useState("");
-  const [remainingSeconds, setRemainingSeconds] = useState(0); // Add this state
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [userSubmit, setUserSubmit] = useState(false);
   const [demoExam, setDemoExam] = useState(false);
   const [submitFinalExam, setSubmitFinalExam] = useState(false);
@@ -39,23 +38,23 @@ const QuestionPaper = () => {
   // Use refs to prevent multiple intervals and track submission
   const timerIntervalRef = useRef(null);
   const hasSubmittedRef = useRef(false);
-  const autoSubmitTriggeredRef = useRef(false); // Add this ref
+  const autoSubmitTriggeredRef = useRef(false);
 
   // Environment config
   const env = { 
     url: 'http://localhost:3000' 
   };
 
-  // // Helper function to get user ID - handles both _id and id formats
-  // const getUserId = (userData) => {
-  //   return userData?.id || userData?._id;
-  // };
+  // Helper function to get user ID - handles both _id and id formats
+  const getUserId = (userData) => {
+    return userData?.id || userData?._id;
+  };
 
-  // // Helper function to validate user data
-  // const isValidUser = (userData) => {
-  //   const userId = getUserId(userData);
-  //   return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
-  // };
+  // Helper function to validate user data
+  const isValidUser = (userData) => {
+    const userId = getUserId(userData);
+    return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
+  };
 
   // ================= CLEANUP INTERVALS =================
   const cleanupIntervals = () => {
@@ -354,11 +353,6 @@ const QuestionPaper = () => {
       // Get questions after exam data is loaded
       await getQuestions(examData, examId);
       
-      // Initialize activity logging after all data is loaded
-      setTimeout(() => {
-        logAnswer();
-      }, 1000);
-      
     } catch (err) {
       console.error("Error fetching exam", err);
       setError("Failed to load exam: " + (err.response?.data?.message || err.message));
@@ -405,7 +399,7 @@ const QuestionPaper = () => {
 
       const questions = resp.data.data.map((q) => ({
         ...q,
-        selectedAnswer: q.userAnswer,
+        selectedAnswer: q.userAnswer || null,
         seen: q.seen || false,
         status: q.status || "unanswered",
       }));
@@ -423,22 +417,16 @@ const QuestionPaper = () => {
       
       console.log("Questions loaded successfully:", questions.length);
 
+      // Initialize activity logging after all data is loaded
+      setTimeout(() => {
+        logAnswer();
+      }, 1000);
+
     } catch (err) {
       console.error("Error fetching questions details:", err);
       setError("Failed to load questions: " + (err.response?.data?.message || err.message));
     }
   };
-
-  // Update question counters
-  // const updateQuestionCounters = (questions) => {
-  //   const notViewedCount = questions.filter(q => !q.seen && q.status === "unanswered").length;
-  //   const viewedCount = questions.filter(q => q.seen && q.status === "unanswered").length;
-  //   const answeredCount = questions.filter(q => q.status === "answered").length;
-    
-  //   setNotViewed(notViewedCount);
-  //   setViewed(viewedCount);
-  //   setAnswered(answeredCount);
-  // };
 
   // Auto Submit when time expires
   const autoSubmitExam = async () => {
@@ -562,141 +550,156 @@ const QuestionPaper = () => {
   };
 
   // ================= ANSWER HANDLING =================
- // ================= ANSWER HANDLING =================
-const saveAnswer = async (opt) => {
-  try {
-    let updatedQuestion = { ...currentQuestion };
-    let answeredChange = 0;
+  const saveAnswer = async (opt) => {
+    try {
+      let updatedQuestion = { ...currentQuestion };
+      let answeredChange = 0;
 
-    // Fixed logic based on Angular implementation
-    if (updatedQuestion.status === "unanswered" || !updatedQuestion.status) {
-      // Selecting an answer for the first time
-      updatedQuestion.selectedAnswer = opt;
-      updatedQuestion.seen = true;
-      updatedQuestion.status = "answered";
-      answeredChange = 1;
-    } else if (updatedQuestion.status === "answered") {
-      if (updatedQuestion.selectedAnswer === opt) {
-        // Deselecting the currently selected answer
-        updatedQuestion.selectedAnswer = null;
-        updatedQuestion.status = "unanswered";
-        updatedQuestion.seen = true;
-        answeredChange = -1;
-      } else {
-        // Changing to a different answer
+      console.log("Before saveAnswer - Current Question:", updatedQuestion);
+      console.log("Selected option:", opt);
+
+      // Fixed logic based on Angular implementation
+      if (!updatedQuestion.status || updatedQuestion.status === "unanswered") {
+        // Selecting an answer for the first time
         updatedQuestion.selectedAnswer = opt;
         updatedQuestion.seen = true;
-        // Status remains "answered", no change in count
+        updatedQuestion.status = "answered";
+        answeredChange = 1;
+        console.log("First time answering - set to answered");
+      } else if (updatedQuestion.status === "answered") {
+        if (updatedQuestion.selectedAnswer === opt) {
+          // Deselecting the currently selected answer
+          updatedQuestion.selectedAnswer = null;
+          updatedQuestion.status = "unanswered";
+          updatedQuestion.seen = true;
+          answeredChange = -1;
+          console.log("Deselecting answer - set to unanswered");
+        } else {
+          // Changing to a different answer
+          updatedQuestion.selectedAnswer = opt;
+          updatedQuestion.seen = true;
+          // Status remains "answered", no change in count
+          console.log("Changing answer - remains answered");
+        }
       }
+
+      console.log("After saveAnswer - Updated Question:", updatedQuestion);
+
+      // Update answered count
+      setAnswered(prev => {
+        const newCount = prev + answeredChange;
+        console.log("Answered count changed from", prev, "to", newCount);
+        return newCount;
+      });
+
+      // Update question list
+      const currentIndex = questionList.indexOf(currentQuestion);
+      const updatedQuestions = [...questionList];
+      updatedQuestions[currentIndex] = updatedQuestion;
+      setQuestionList(updatedQuestions);
+      setCurrentQuestion(updatedQuestion);
+
+      // Update counters
+      updateQuestionCounters(updatedQuestions);
+      
+      // Log activity and sync answer with updated question
+      await logAnswerWithQuestion(updatedQuestion);
+      await syncAnswerWithQuestion(updatedQuestion);
+
+    } catch (err) {
+      console.error("Error saving answer", err);
+      alert("Failed to save answer: " + (err.response?.data?.message || err.message));
     }
+  };
 
-    // Update answered count
-    setAnswered(prev => prev + answeredChange);
+  // Log Answer Activity - Fixed
+  const logAnswer = async () => {
+    if (currentQuestion) {
+      await logAnswerWithQuestion(currentQuestion);
+    }
+  };
 
-    // Update question list
-    const currentIndex = questionList.indexOf(currentQuestion);
-    const updatedQuestions = [...questionList];
-    updatedQuestions[currentIndex] = updatedQuestion;
-    setQuestionList(updatedQuestions);
-    setCurrentQuestion(updatedQuestion);
+  const logAnswerWithQuestion = async (question) => {
+    try {
+      if (!question || !user || !examId) {
+        console.log("Missing data for logging:", { question: !!question, user: !!user, examId });
+        return;
+      }
 
-    // Update counters
-    updateQuestionCounters(updatedQuestions);
+      const userId = getUserId(user);
+      if (!userId || userId === 'undefined') {
+        console.error("Invalid user ID for logging:", user);
+        return;
+      }
+
+      const data = {
+        user_id: userId.toString(),
+        user_name: user.full_name || user.name || '',
+        exam_id: examId,
+        exam_name: exam?.exam_name,
+        question_id: question._id,
+        status: question.status || "unanswered", // Ensure we have a status
+        answered: (question.status === "answered"), // Boolean value based on status
+        answer: question.selectedAnswer, // This should be the selected option (1, 2, 3, 4)
+      };
+
+      console.log("Logging activity with data:", data);
+      await apiService.post("activityLog", data);
+      console.log("Activity logged successfully");
+    } catch (err) {
+      console.error("Error logging answer activity", err);
+    }
+  };
+
+  // Sync Answer to Backend - Fixed
+  const syncAnswer = async () => {
+    if (currentQuestion) {
+      await syncAnswerWithQuestion(currentQuestion);
+    }
+  };
+
+  const syncAnswerWithQuestion = async (question) => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user"));
+      if (!isValidUser(userData) || !examId || !exam) {
+        console.log("Missing data for sync:", { userData: !!userData, examId, exam: !!exam });
+        return;
+      }
+
+      const userId = getUserId(userData);
+
+      const data = {
+        user_id: userId.toString(),
+        user_name: userData.full_name || userData.name || '',
+        exam_id: examId,
+        exam_name: exam.exam_name,
+        question_id: question.question_id || question._id,
+        seen: question.seen,
+        question: question.question,
+        userAnswer: question.selectedAnswer, // This should be the selected option
+        status: question.status || "unanswered", // Ensure we have a status
+      };
+
+      console.log("Syncing answer data:", data);
+      await apiService.post("answerSheet", data);
+      console.log("Answer synced successfully");
+    } catch (err) {
+      console.error("Error syncing answer", err);
+    }
+  };
+
+  // Update question counters - Fixed
+  const updateQuestionCounters = (questions) => {
+    const notViewedCount = questions.filter(q => !q.seen && (!q.status || q.status === "unanswered")).length;
+    const viewedCount = questions.filter(q => q.seen && (!q.status || q.status === "unanswered")).length;
+    const answeredCount = questions.filter(q => q.status === "answered").length;
     
-    // Log activity and sync answer
-    await logAnswer();
-    await syncAnswer();
-
-  } catch (err) {
-    console.error("Error saving answer", err);
-    alert("Failed to save answer: " + (err.response?.data?.message || err.message));
-  }
-};
-
-// Log Answer Activity - Fixed
-const logAnswer = async () => {
-  try {
-    if (!currentQuestion || !user || !examId) {
-      console.log("Missing data for logging:", { currentQuestion: !!currentQuestion, user: !!user, examId });
-      return;
-    }
-
-    const userId = getUserId(user);
-    if (!userId || userId === 'undefined') {
-      console.error("Invalid user ID for logging:", user);
-      return;
-    }
-
-    const data = {
-      user_id: userId.toString(),
-      user_name: user.full_name || user.name || '',
-      exam_id: examId,
-      exam_name: exam?.exam_name,
-      question_id: currentQuestion._id,
-      status: currentQuestion.status, // This should now be "answered" or "unanswered" correctly
-      answered: currentQuestion.status === "answered", // Boolean value
-      answer: currentQuestion.selectedAnswer, // This should be the selected option (1, 2, 3, 4)
-    };
-
-    await apiService.post("activityLog", data);
-    console.log("Activity logged successfully with data:", data);
-  } catch (err) {
-    console.error("Error logging answer activity", err);
-  }
-};
-
-// Sync Answer to Backend - Fixed
-const syncAnswer = async () => {
-  try {
-    const userData = JSON.parse(localStorage.getItem("user"));
-    if (!isValidUser(userData) || !examId || !exam) {
-      console.log("Missing data for sync:", { userData: !!userData, examId, exam: !!exam });
-      return;
-    }
-
-    const userId = getUserId(userData);
-
-    const data = {
-      user_id: userId.toString(),
-      user_name: userData.full_name || userData.name || '',
-      exam_id: examId,
-      exam_name: exam.exam_name,
-      question_id: currentQuestion.question_id || currentQuestion._id,
-      seen: currentQuestion.seen,
-      question: currentQuestion.question,
-      userAnswer: currentQuestion.selectedAnswer, // This should be the selected option
-      status: currentQuestion.status, // This should be "answered" or "unanswered"
-    };
-
-    console.log("Syncing answer data:", data);
-    await apiService.post("answerSheet", data);
-    console.log("Answer synced successfully");
-  } catch (err) {
-    console.error("Error syncing answer", err);
-  }
-};
-
-// Helper function to get user ID - handles both _id and id formats
-const getUserId = (userData) => {
-  return userData?.id || userData?._id;
-};
-
-// Helper function to validate user data
-const isValidUser = (userData) => {
-  const userId = getUserId(userData);
-  return userData && userId && userId !== 'undefined' && userId.toString().trim() !== '';
-};
-
-// Update question counters
-const updateQuestionCounters = (questions) => {
-  const notViewedCount = questions.filter(q => !q.seen && q.status === "unanswered").length;
-  const viewedCount = questions.filter(q => q.seen && q.status === "unanswered").length;
-  const answeredCount = questions.filter(q => q.status === "answered").length;
-  
-  setNotViewed(notViewedCount);
-  setViewed(viewedCount);
-  setAnswered(answeredCount);
-};
+    console.log("Updating counters:", { notViewedCount, viewedCount, answeredCount });
+    
+    setNotViewed(notViewedCount);
+    setViewed(viewedCount);
+    setAnswered(answeredCount);
+  };
 
   // ================= SUBMIT HANDLING =================
   const handleSubmit = () => {
@@ -746,14 +749,14 @@ const updateQuestionCounters = (questions) => {
 
   const getNotVisitedQuestionCount = () => {
     const count = questionList?.filter(
-      (question) => !question.seen && question.status === "unanswered"
+      (question) => !question.seen && (!question.status || question.status === "unanswered")
     ).length || 0;
     return count;
   };
 
   const getViewedQuestionCount = () => {
     return questionList?.filter(
-      (question) => question.seen && question.status === "unanswered"
+      (question) => question.seen && (!question.status || question.status === "unanswered")
     ).length || 0;
   };
 
@@ -817,7 +820,6 @@ const updateQuestionCounters = (questions) => {
       </div>
     </div>
   );
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header - Only show when not in submit modes */}
