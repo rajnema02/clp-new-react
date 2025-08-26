@@ -5,47 +5,23 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 
 module.exports = {
- // examReport.controller.js
-getExamReport: async (req, res, next) => {
-  try {
-    const { exam_id } = req.query;
-
-    if (!exam_id) {
-      return res.status(400).json({ success: false, message: "exam_id is required" });
+  getExamReport: async (req, res, next) => {
+    try {
+      const { id } = req.query;
+      const reportData = await Model.findOne({
+        _id: mongoose.Types.ObjectId(id),
+      });
+      const studentList = await Model.find({
+        Result: "Pass",
+        Exam_id: mongoose.Types.ObjectId(exam_id),
+      });
+        console.log("passList",studentList.length);
+      res.json(reportData);
+      return;
+    } catch (error) {
+      next(error);
     }
-
-    const resultList = await Model.find({
-      Exam_id: new mongoose.Types.ObjectId(exam_id),
-    });
-
-    if (!resultList.length) {
-      return res.json({ success: false, message: "No results found for this exam" });
-    }
-
-    const totalCount = resultList.length;
-    const passedCount = await Model.countDocuments({
-      Result: "Pass",
-      Exam_id: new mongoose.Types.ObjectId(exam_id),
-    });
-    const failedCount = await Model.countDocuments({
-      Result: "Fail",
-      Exam_id: new mongoose.Types.ObjectId(exam_id),
-    });
-
-    return res.json({
-      success: true,
-      ResultList: resultList,
-      TotalCount: totalCount,
-      PassedCount: passedCount,
-      FailedCount: failedCount,
-    });
-  } catch (error) {
-    console.error("Error in getExamReport:", error);
-    next(error);
-  }
-},
-
-
+  },
   getResultList: async (req, res, next) => {
     try {
       // console.log('get result list called')
@@ -83,32 +59,24 @@ getExamReport: async (req, res, next) => {
     }
   },
   passedList: async (req, res, next) => {
-  try {
-    const { exam_id } = req.query;
-
-    if (!exam_id) {
-      return res.status(400).json({ success: false, message: "exam_id is required" });
-    }
-
-    const studentList = await Model.find({
-      Result: "Pass",
-      Exam_id: new mongoose.Types.ObjectId(exam_id),
-    });
-
-    if (studentList && studentList.length > 0) {
-      return res.json({
-        success: true,
-        TotalCount: studentList.length,
-        PassedStudentList: studentList,
+    try {
+      const { exam_id } = req.query;
+      const studentList = await Model.find({
+        Result: "Pass",
+        Exam_id: new mongoose.Types.ObjectId(exam_id),
       });
-    } else {
-      return res.json({ success: true, message: "No passed students found", TotalCount: 0, PassedStudentList: [] });
+      if (studentList) {
+        const count = studentList.length;
+        res.json({ TotalCount: count, PassedStudentList: studentList });
+        return;
+      } else {
+        res.json({ message: "No passed students found" });
+        return;
+      }
+    } catch (next) {
+      next(error);
     }
-  } catch (error) {
-    console.error("Error in passedList:", error);
-    next(error); // now works correctly
-  }
-},
+  },
   failedList: async (req, res, next) => {
     try {
       const { exam_id } = req.query;
@@ -158,7 +126,7 @@ getExamReport: async (req, res, next) => {
       const studentAllReports = await Model.aggregate([
         {
           $match: {
-            Student_id: new mongoose.Types.ObjectId(studentId),
+            Student_id: mongoose.Types.ObjectId(studentId),
           },
         },
         {
@@ -216,7 +184,7 @@ getExamReport: async (req, res, next) => {
   getFinalExamReport: async (req, res, next) => {
     const Model = require("../Models/ExamReport.model");
     const Exam = require("../Models/Exam.model");
-    const User = require("../Models/Auth.model");
+    const User = require("../Models/User.model");
 
     try {
       const { examId } = req.query;

@@ -168,7 +168,7 @@ module.exports = {
         for (let student of allStudents) {
           const studentFound = await Model.findOne({
             user_id: student._id,
-            exam_id: mongoose.Types.ObjectId(examId),
+            exam_id: new mongoose.Types.ObjectId(examId),
           });
 
           if (studentFound) {

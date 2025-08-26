@@ -1,26 +1,15 @@
-const router = require('express').Router();
-const Controller = require('../Controllers/ExamReport.controller');
-const { verifyAccessToken } = require('../Helpers/jwt_helper');
+const router = require('express').Router()
+const Controller = require('../Controllers/ExamReport.controller')
+const { verifyAccessToken } = require('../Helpers/jwt_helper')
 
-// Get all exam results with counts
-router.get('/getExamReport/', verifyAccessToken, Controller.getExamReport);
+router.get('/getPassedList/',verifyAccessToken,  Controller.passedList)
+router.get('/getFailedList/',verifyAccessToken,  Controller.failedList)
+router.get('/getResultList/',verifyAccessToken,  Controller.getResultList)
+router.get('/getExamReport/',verifyAccessToken,  Controller.getExamReport)
+router.get('/getFinalExamReport/',verifyAccessToken,  Controller.getFinalExamReport)
+router.get('/getStudentCertificates/',verifyAccessToken,  Controller.getStudentsCertificates);
+router.get('/download-certificatePDF/',verifyAccessToken,  Controller.downloadCertificatePDF)
 
-// Get passed students list
-router.get('/getPassedList/', verifyAccessToken, Controller.passedList);
 
-// Get failed students list  
-router.get('/getFailedList/', verifyAccessToken, Controller.failedList);
 
-// Legacy route for backward compatibility
-router.get('/getResultList/', verifyAccessToken, Controller.getResultList);
-
-// Get final exam report with batch data
-router.get('/getFinalExamReport/', verifyAccessToken, Controller.getFinalExamReport);
-
-// Get student certificates
-router.get('/getStudentCertificates/', verifyAccessToken, Controller.getStudentsCertificates);
-
-// Download certificate PDF
-router.get('/download-certificatePDF/', verifyAccessToken, Controller.downloadCertificatePDF);
-
-module.exports = router;
+module.exports = router

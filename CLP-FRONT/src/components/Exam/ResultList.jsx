@@ -11,11 +11,12 @@ const ResultList = () => {
   const [examData, setExamData] = useState({});
 
   // UI states
-  const [showAttendance, setShowAttendance] = useState(false);
+  const [showAttendence, setShowAttendence] = useState(false);
   const [reScheduleExamForm, setReScheduleExamForm] = useState(false);
   const [uploadCertificateForm, setUploadCertificateForm] = useState(false);
   const [clearState, setClearState] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [absentShow, setAbsentShow] = useState(true);
 
   // Buttons
   const [processResultButton, setProcessResultButton] = useState(false);
@@ -27,10 +28,10 @@ const ResultList = () => {
   const [viewParticipationCertificate, setViewParticipationCertificate] = useState(false);
 
   // Counts
+  const [count, setCount] = useState("-");
   const [resultCount, setResultCount] = useState("-");
   const [passedCount, setPassedCount] = useState("-");
   const [failedCount, setFailedCount] = useState("-");
-  const [totalCount, setTotalCount] = useState("-");
 
   // File Upload
   const [selectedFiles, setSelectedFiles] = useState(null);
@@ -40,21 +41,17 @@ const ResultList = () => {
   const [failPdf, setFailPdf] = useState(false);
 
   // Current view state
-  const [currentView, setCurrentView] = useState("all"); // "all", "passed", "failed", "attendance"
+  const [currentView, setCurrentView] = useState("all");
 
-  // Re-schedule form fields
-  const [newExamData, setNewExamData] = useState({
-    exam_name: "",
-    exam_code: "",
-    course_name: "",
-    course_type: "",
-    exam_date: "",
-    exam_time: "",
-  });
+  // Error state
+  const [error, setError] = useState(null);
+
+  // Environment
+  const env = "localhost:3000";
 
   useEffect(() => {
     fetchExamData();
-    fetchAllResults();
+    getResultList();
     getTotalCount();
     checkIfAlreadyGenerated();
     checkIfReportsAlreadyProcessed();
@@ -62,158 +59,179 @@ const ResultList = () => {
 
   const fetchExamData = async () => {
     try {
-      const resp = await apiService.get(`exam/${examId}`);
-      if (resp) {
-        setExamData(resp);
-        setNewExamData(prev => ({
-          ...prev,
-          course_name: resp.course_name || "",
-          course_type: resp.course_type || ""
-        }));
+      const resp = await apiService.get(`exam/${examId}`, {});
+      console.log("Exam Data Response:", resp);
+      
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Exam Data:", responseData);
+      
+      if (responseData) {
+        setExamData(responseData);
         
-        // Check if processing time has started (similar to Angular logic)
-        const examHour = resp.exam_time?.split(":")[0];
-        const examMinutes = resp.exam_time?.split(":")[1];
-        const examDate = new Date(resp.exam_date);
-        examDate.setHours(examHour);
-        examDate.setMinutes(examMinutes);
-        
-        const nowTime = new Date();
-        // Enable process button (you can add your time logic here)
-        setProcessResultButton(true);
+        // Calculate if processing time has started (similar to Angular logic)
+        if (responseData.exam_time && responseData.exam_date) {
+          const examHour = responseData.exam_time.split(":")[0];
+          const examMinutes = responseData.exam_time.split(":")[1];
+          const examDate = new Date(responseData.exam_date);
+          examDate.setHours(examHour);
+          examDate.setMinutes(examMinutes);
+          const nowTime = new Date();
+          
+          // Enable process button (commented condition from Angular)
+          setProcessResultButton(true);
+        }
       }
     } catch (error) {
       console.error("Error fetching exam data:", error);
+      setError("Failed to load exam data");
     }
   };
 
   const getTotalCount = async () => {
     try {
       const resp = await apiService.get("answerSheet/getTotalCount", { exam_id: examId });
-      setTotalCount(resp?.TotalCount || "-");
+      console.log("Total Count Response:", resp);
+      
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Total Count Data:", responseData);
+      
+      setCount(responseData?.TotalCount || "-");
     } catch (error) {
       console.error("Error fetching total count:", error);
     }
   };
 
-  // Fetch all results (main function)
-  const fetchAllResults = async () => {
+  // Main result list function (matches Angular getResultList)
+  const getResultList = async () => {
     setLoading(true);
+    setError(null);
     resetViews();
     setCurrentView("all");
     
     try {
-      console.log("Fetching results for exam_id:", examId);
-      const resp = await apiService.get("examReport/getExamReport", { exam_id: examId });
+      console.log("=== FETCHING RESULT LIST ===");
+      console.log("Exam ID:", examId);
       
-      console.log("API Response:", resp);
-
-      if (resp?.success) {
-        // Set the data regardless of whether ResultList has items or not
-        setResultList(resp.ResultList || []);
-        setResultCount(resp.TotalCount || 0);
-        setPassedCount(resp.PassedCount || 0);
-        setFailedCount(resp.FailedCount || 0);
-        
-        if (resp.ResultList && resp.ResultList.length > 0) {
-          console.log("Results loaded successfully:", resp.ResultList.length, "results");
-        } else {
-          console.log("No results found, but API call was successful");
-        }
+      // Use correct Angular endpoint
+      const resp = await apiService.get("examReport/getResultList/", { exam_id: examId });
+      
+      console.log("=== RESULT LIST RESPONSE ===");
+      console.log("Raw Response:", resp);
+      console.log("Response type:", typeof resp);
+      
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Response Data:", responseData);
+      console.log("Response Data type:", typeof responseData);
+      
+      if (responseData && responseData.ResultList) {
+        console.log("Setting result list:", responseData.ResultList);
+        setResultList(responseData.ResultList);
+        setResultCount(responseData.TotalCount || responseData.ResultList.length);
+        setPassedCount(responseData.PassedCount || 0);
+        setFailedCount(responseData.FailedCount || 0);
+        console.log("resultList set successfully");
       } else {
-        console.log("API returned success: false", resp?.message);
-        setResultList([]);
-        setResultCount(0);
-        setPassedCount(0);
-        setFailedCount(0);
-        if (resp?.message) {
-          alert(resp.message);
+        console.log("No ResultList found in response");
+        if (processResultButton) {
+          alert(responseData?.message || "No results found");
         }
+        setResultList([]);
+        setResultCount("-");
+        setPassedCount("-");
+        setFailedCount("-");
+        setError(responseData?.message || "No results found");
       }
     } catch (error) {
-      console.error("Error fetching results:", error);
+      console.error("=== FETCH ERROR ===");
+      console.error("Error:", error);
+      console.error("Error response:", error.response);
+      
       setResultList([]);
-      setResultCount(0);
-      setPassedCount(0);
-      setFailedCount(0);
-      alert("Error fetching results. Please try again.");
+      setResultCount("-");
+      setPassedCount("-");
+      setFailedCount("-");
+      setError("Error fetching results. Please try again.");
     } finally {
       setLoading(false);
+      console.log("=== FETCH COMPLETE ===");
     }
   };
 
-  // Process results (for when results need to be calculated first)
-  const processResults = async () => {
+  // Process results using Angular's getExamReport logic
+  const getExamReport = async () => {
     setLoading(true);
+    setError(null);
+    resetViews();
+    setCurrentView("all");
+    
     try {
       console.log("Processing results for exam_id:", examId);
       
-      // This would typically call an API to process/calculate results first
-      // For now, we'll just fetch the results
-      const resp = await apiService.get("examReport/getExamReport", { exam_id: examId });
+      // Use Angular's endpoint for processing
+      const resp = await apiService.post("answerSheet/showResultsToAdmin", { exam_id: examId });
+      console.log("Process Results Response:", resp);
       
-      console.log("Process Results API Response:", resp);
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Process Results Data:", responseData);
       
-      if (resp?.success) {
-        setResultList(resp.ResultList || []);
-        setResultCount(resp.TotalCount || 0);
-        setPassedCount(resp.PassedCount || 0);
-        setFailedCount(resp.FailedCount || 0);
-        setProcessResultButton(false);
-        
-        if (resp.ResultList && resp.ResultList.length > 0) {
-          alert("Results processed successfully!");
-          console.log("Results processed:", resp.ResultList.length, "results");
-        } else {
-          alert("Results processed but no data found");
-        }
-      } else {
-        alert(resp?.message || "Error processing results");
-        setResultList([]);
-        setResultCount(0);
-        setPassedCount(0);
-        setFailedCount(0);
-      }
+      // After processing, get the updated result list
+      await getResultList();
+      
+      alert("Results processed successfully!");
     } catch (error) {
       console.error("Error processing results:", error);
       alert("Error processing results. Please try again.");
+      setError("Error processing results");
     } finally {
+      await checkIfReportsAlreadyProcessed();
       setLoading(false);
     }
   };
 
   const getPassedStudents = async () => {
     setLoading(true);
-    resetViews();
-    setCurrentView("passed");
+    setError(null);
+    
+    // Set states matching Angular
+    setUploadCertificateForm(false);
+    setViewParticipationCertificate(false);
     setViewCertificate(true);
     setClearState(true);
+    setReScheduleExamForm(false);
+    setAbsentShow(false);
+    setCreateBatchButton(false);
     setPassPdf(true);
     setFailPdf(false);
+    setShowAttendence(false);
+    setCurrentView("passed");
     
     try {
-      console.log("Fetching passed students for exam_id:", examId);
       const resp = await apiService.get("examReport/getPassedList", { exam_id: examId });
+      console.log("Passed Students Response:", resp);
       
-      console.log("Passed Students API Response:", resp);
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Passed Students Data:", responseData);
       
-      if (resp?.success) {
-        setResultList(resp.PassedStudentList || []);
-        setPassedCount(resp.TotalCount || 0);
-        
-        if (resp.PassedStudentList && resp.PassedStudentList.length > 0) {
-          console.log("Passed students loaded:", resp.PassedStudentList.length);
+      if (responseData && responseData.PassedStudentList) {
+        if (responseData.PassedStudentList.length <= 0) {
+          alert("No passed students found!");
         } else {
-          console.log("No passed students found");
+          setResultList(responseData.PassedStudentList);
+          setPassedCount(responseData.TotalCount || responseData.PassedStudentList.length);
         }
       } else {
-        alert(resp?.message || "No passed students found!");
+        alert("No passed students found!");
         setResultList([]);
         setPassedCount(0);
       }
     } catch (error) {
       console.error("Error fetching passed students:", error);
-      alert("Error fetching passed students. Please try again.");
+      setError("Error fetching passed students. Please try again.");
       setResultList([]);
       setPassedCount(0);
     } finally {
@@ -223,44 +241,51 @@ const ResultList = () => {
 
   const getFailedStudents = async () => {
     setLoading(true);
-    resetViews();
-    setCurrentView("failed");
-    setClearState(true);
+    setError(null);
+    
+    // Set states matching Angular
+    setUploadCertificateForm(false);
+    setViewCertificate(false);
     setPassPdf(false);
     setFailPdf(true);
+    setClearState(true);
+    setReScheduleExamForm(false);
+    setAbsentShow(true);
+    setShowAttendence(false);
+    setCurrentView("failed");
     
     try {
-      console.log("Fetching failed students for exam_id:", examId);
-      
       // Check if this is the last attempt
-      const examResp = await apiService.get("exam/checkIfExamIsLastAttempt", { id: examId });
-      if (examResp?.success) {
-        setCreateBatchButton(true);
-      } else {
-        setViewParticipationCertificate(true);
+      try {
+        const examResp = await apiService.get("exam/checkIfExamIsLastAttempt", { id: examId });
+        const examResponseData = examResp?.data || examResp;
+        if (examResponseData?.success === true) {
+          setCreateBatchButton(true);
+        } else {
+          setViewParticipationCertificate(true);
+        }
+      } catch (e) {
+        console.log("Could not check last attempt:", e);
       }
 
       const resp = await apiService.get("examReport/getFailedList", { exam_id: examId });
+      console.log("Failed Students Response:", resp);
       
-      console.log("Failed Students API Response:", resp);
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Failed Students Data:", responseData);
       
-      if (resp?.success) {
-        setResultList(resp.FailedStudentList || []);
-        setFailedCount(resp.TotalCount || 0);
-        
-        if (resp.FailedStudentList && resp.FailedStudentList.length > 0) {
-          console.log("Failed students loaded:", resp.FailedStudentList.length);
-        } else {
-          console.log("No failed students found");
-        }
+      if (responseData && responseData.FailedStudentList) {
+        setResultList(responseData.FailedStudentList);
+        setFailedCount(responseData.TotalCount || responseData.FailedStudentList.length);
       } else {
-        alert(resp?.message || "No failed students found!");
+        setError("No failed students found!");
         setResultList([]);
         setFailedCount(0);
       }
     } catch (error) {
       console.error("Error fetching failed students:", error);
-      alert("Error fetching failed students. Please try again.");
+      setError("Error fetching failed students. Please try again.");
       setResultList([]);
       setFailedCount(0);
     } finally {
@@ -268,31 +293,52 @@ const ResultList = () => {
     }
   };
 
-  const showAttendanceList = async () => {
+  const showAttendenceList = async () => {
     setLoading(true);
-    resetViews();
-    setCurrentView("attendance");
-    setShowAttendance(true);
+    setError(null);
+    
+    // Set states matching Angular
+    setViewParticipationCertificate(false);
+    setViewCertificate(false);
     setClearState(true);
+    setCreateBatchButton(false);
+    setReScheduleExamForm(false);
+    setCurrentView("attendance");
     
     try {
       const resp = await apiService.post("answerSheet/showAttendenceList", { exam_id: examId });
-      setStudentList(resp || []);
+      console.log("Attendance Response:", resp);
+      
+      // Handle Axios response wrapper - extract data
+      const responseData = resp?.data || resp;
+      console.log("Attendance Data:", responseData);
+      
+      const attendanceList = Array.isArray(responseData) ? responseData : [];
+      setStudentList(attendanceList);
+      setShowAttendence(true);
+      
+      if (attendanceList.length === 0) {
+        setError("No attendance data found");
+      }
     } catch (error) {
       console.error("Error fetching attendance list:", error);
-      alert("Error fetching attendance list. Please try again.");
+      setError("Error fetching attendance list. Please try again.");
+      setStudentList([]);
     } finally {
       setLoading(false);
     }
   };
 
   const reScheduleExam = async () => {
+    setViewCertificate(false);
+    
     try {
       const resp = await apiService.get("exam/checkIfAlreadyRescheduled", { id: examId });
-      if (!resp?.success) {
+      console.log(resp);
+      if (resp?.success === false) {
         setClearState(false);
         setReScheduleExamForm(true);
-      } else {
+      } else if (resp?.success === true) {
         alert(resp?.message);
       }
     } catch (error) {
@@ -300,22 +346,28 @@ const ResultList = () => {
     }
   };
 
-  const submitReScheduleExam = async () => {
-    // Basic validation
-    if (!newExamData.exam_name || !newExamData.exam_code || !newExamData.exam_date || !newExamData.exam_time) {
-      alert("Please fill all required fields!");
+  const submitReScheduleExam = async (formData) => {
+    if (!formData.exam_name || !formData.exam_code || !formData.exam_date || !formData.exam_time) {
+      alert("Please fill required fields!!");
       return;
     }
 
     try {
-      const data = { newExamData, exam_id: examId };
+      const data = {
+        newExamData: formData,
+        exam_id: examId
+      };
+      
       const resp = await apiService.post("exam/reScheduleExam", data);
+      console.log(resp);
+      
       if (resp?.message) {
         alert(resp.message);
+        setReScheduleExamForm(false);
       } else {
         alert("Exam Re-Scheduled Successfully!!");
+        setReScheduleExamForm(false);
       }
-      setReScheduleExamForm(false);
     } catch (error) {
       console.error("Error rescheduling exam:", error);
       alert("Please fill required fields!!");
@@ -325,13 +377,14 @@ const ResultList = () => {
   const resetViews = () => {
     setViewParticipationCertificate(false);
     setViewCertificate(false);
-    setShowAttendance(false);
+    setShowAttendence(false);
     setCreateBatchButton(false);
     setUploadCertificateForm(false);
     setReScheduleExamForm(false);
     setPassPdf(false);
     setFailPdf(false);
     setClearState(false);
+    setError(null);
   };
 
   const checkIfReportsAlreadyProcessed = async () => {
@@ -348,10 +401,12 @@ const ResultList = () => {
   const checkIfAlreadyGenerated = async () => {
     try {
       const resp = await apiService.get("certificate/checkIfGenerated", { examId });
-      if (resp?.success) {
+      if (resp?.success === true) {
         setGenerateCertificateButton(false);
         setDownloadCertificateButton(true);
         setUploadCertificateButton(true);
+      } else {
+        console.log(resp?.message);
       }
     } catch (error) {
       console.error("Error checking certificate generation:", error);
@@ -362,6 +417,7 @@ const ResultList = () => {
     try {
       const resp = await apiService.get("certificate/download-pdf", { exam_id: examId });
       if (resp) {
+        console.log(resp);
         setGenerateCertificateButton(false);
         setDownloadCertificateButton(true);
         setUploadCertificateButton(true);
@@ -375,7 +431,7 @@ const ResultList = () => {
   };
 
   const downloadCertificates = () => {
-    window.open(`${process.env.REACT_APP_API_URL}/certificate/download-certificates?exam_id=${examId}`, "_blank");
+    window.open(`${env.REACT_APP_API_URL}/certificate/download-certificates?exam_id=${examId}`, "_blank");
   };
 
   const uploadCertificates = () => {
@@ -388,27 +444,37 @@ const ResultList = () => {
 
   const onSubmitUpload = async () => {
     if (!selectedFiles) {
-      alert("No files selected!");
+      console.log("No files selected");
       return;
     }
     
     const formData = new FormData();
-    Array.from(selectedFiles).forEach((file) => {
-      formData.append("files", file);
-    });
-
+    for (let i = 0; i < selectedFiles.length; i++) {
+      formData.append("files", selectedFiles[i]);
+    }
+    
+    console.log(formData);
+    
     try {
       const resp = await apiService.post("certificate/upload", formData);
       if (resp?.success) {
         setUploadCertificateForm(false);
         setUploadCertificateButton(false);
         alert("Certificates uploaded successfully!");
+        console.log(resp);
       } else {
         alert(resp?.message || "Upload failed");
       }
     } catch (error) {
       console.error("Error uploading certificates:", error);
     }
+  };
+
+  const handleReScheduleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    submitReScheduleExam(data);
   };
 
   return (
@@ -428,7 +494,7 @@ const ResultList = () => {
           <div className="flex flex-wrap gap-2">
             {clearState && (
               <button 
-                onClick={fetchAllResults} 
+                onClick={getResultList} 
                 className="px-3 py-2 text-yellow-600 hover:text-yellow-800 underline"
                 disabled={loading}
               >
@@ -437,34 +503,25 @@ const ResultList = () => {
             )}
 
             <button 
-              onClick={showAttendanceList} 
+              onClick={showAttendenceList} 
               className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
               disabled={loading}
             >
-              <i className="fa fa-users mr-1"></i>
-              View Attendance [{totalCount}]
+              <i className="fas fa-list mr-1"></i>
+              View Attendence List [{count}]
             </button>
-            
+
             {processResultButton && (
               <button 
-                onClick={processResults} 
+                onClick={getExamReport} 
                 className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                 disabled={loading}
               >
                 <i className={`fa ${loading ? 'fa-spinner fa-spin' : 'fa-circle-notch'} mr-1`}></i>
-                Process Results
+                Process Results [{resultCount}]
               </button>
             )}
 
-            <button 
-              onClick={fetchAllResults} 
-              className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
-              disabled={loading}
-            >
-              <i className={`fa ${loading ? 'fa-spinner fa-spin' : 'fa-list'} mr-1`}></i>
-              All Results [{resultCount}]
-            </button>
-            
             <a 
               href={`/exam/print-pdf/2/${examId}`} 
               target="_blank" 
@@ -481,7 +538,7 @@ const ResultList = () => {
               disabled={loading}
             >
               <i className={`fa ${loading && currentView === 'passed' ? 'fa-spinner fa-spin' : 'fa-check'} mr-1`}></i>
-              Passed Students [{passedCount}]
+              View Passed Students [{passedCount}]
             </button>
             
             {passPdf && (
@@ -502,7 +559,7 @@ const ResultList = () => {
               disabled={loading}
             >
               <i className={`fa ${loading && currentView === 'failed' ? 'fa-spinner fa-spin' : 'fas fa-times'} mr-1`}></i>
-              Failed Students [{failedCount}]
+              View Failed Students [{failedCount}]
             </button>
             
             {failPdf && (
@@ -546,8 +603,45 @@ const ResultList = () => {
                 Upload Certificates
               </button>
             )}
+
+            {/* <button 
+              onClick={showAttendenceList} 
+              className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              disabled={loading}
+            >
+              <i className="fas fa-list mr-1"></i>
+              View Attendence List [{count}]
+            </button> */}
           </div>
         </div>
+
+        {/* Debug Console Output */}
+        {/* <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+          <strong>Debug Info:</strong> 
+          <br />Found {resultList.length} results
+          <br />Current View: {currentView}
+          <br />Loading: {loading.toString()}
+          <br />Error: {error || 'none'}
+          <br />Result Count: {resultCount}
+          <br />Passed Count: {passedCount}
+          <br />Failed Count: {failedCount}
+          <br />Total Count: {count}
+          <br />Process Result Button: {processResultButton.toString()}
+          <br />Show Attendence: {showAttendence.toString()}
+          <br />Student List Length: {studentList.length}
+          <br /><strong>Check browser console for detailed logs</strong>
+          <br /><strong>Raw Result List:</strong> {JSON.stringify(resultList).substring(0, 200)}...
+        </div> */}
+
+        {/* Error Message */}
+        {error && !loading && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <i className="fa fa-exclamation-triangle text-red-500 mr-2"></i>
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Loading indicator */}
         {loading && (
@@ -561,62 +655,64 @@ const ResultList = () => {
         {reScheduleExamForm && !uploadCertificateForm && (
           <div className="mb-6 p-6 bg-gray-50 rounded-lg">
             <h2 className="text-xl font-bold mb-4">Schedule Exam</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input 
-                type="text" 
-                placeholder="Exam Name" 
-                value={newExamData.exam_name} 
-                onChange={(e) => setNewExamData({...newExamData, exam_name: e.target.value})} 
-                className="p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input 
-                type="text" 
-                placeholder="Exam Code" 
-                value={newExamData.exam_code} 
-                onChange={(e) => setNewExamData({...newExamData, exam_code: e.target.value})} 
-                className="p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input 
-                type="text" 
-                placeholder="Course Name" 
-                value={newExamData.course_name} 
-                disabled
-                className="p-3 border rounded bg-gray-100 text-gray-600"
-              />
-              <input 
-                type="text" 
-                value={newExamData.course_type} 
-                disabled
-                className="p-3 border rounded bg-gray-100 text-gray-600"
-              />
-              <div>
-                <label className="block text-sm font-medium mb-1">Exam Date:</label>
+            <form onSubmit={handleReScheduleSubmit} className="p-3 mt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input 
-                  type="date" 
-                  value={newExamData.exam_date} 
-                  onChange={(e) => setNewExamData({...newExamData, exam_date: e.target.value})} 
-                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  name="exam_name" 
+                  type="text" 
+                  placeholder="Exam Name" 
+                  defaultValue={examData.exam_name || ""}
+                  className="p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Exam Time:</label>
                 <input 
-                  type="time" 
-                  value={newExamData.exam_time} 
-                  onChange={(e) => setNewExamData({...newExamData, exam_time: e.target.value})} 
-                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="exam_code" 
+                  type="text" 
+                  placeholder="Exam Code" 
+                  defaultValue={examData.exam_code || ""}
+                  className="p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <input 
+                  name="course_name" 
+                  type="text" 
+                  placeholder="Course Name" 
+                  defaultValue={examData.course_name || ""}
+                  disabled
+                  className="p-3 border rounded bg-gray-100 text-gray-600"
+                />
+                <input 
+                  name="course_type" 
+                  type="text" 
+                  defaultValue={examData.course_type || ""}
+                  disabled
+                  className="p-3 border rounded bg-gray-100 text-gray-600"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-1">Exam Date:</label>
+                  <input 
+                    name="exam_date" 
+                    type="date" 
+                    className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Exam Time:</label>
+                  <input 
+                    name="exam_time" 
+                    type="time" 
+                    className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="mt-6 flex gap-2">
-              <button 
-                onClick={submitReScheduleExam} 
-                className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Schedule Exam
-              </button>
-            </div>
+              <div className="mt-6 flex gap-2">
+                <button 
+                  type="submit" 
+                  className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Schedule Exam
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -668,14 +764,13 @@ const ResultList = () => {
         )}
 
         {/* Attendance Table */}
-        {showAttendance && !loading && (
+        {showAttendence && !loading && (
           <div className="overflow-x-auto">
             <h3 className="text-lg font-semibold mb-3">Attendance List</h3>
             {studentList.length > 0 ? (
               <table className="w-full text-sm text-center border-collapse">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="px-4 py-3 border">S.No</th>
                     <th className="px-4 py-3 border">Students Name</th>
                     <th className="px-4 py-3 border">Email</th>
                     <th className="px-4 py-3 border">Mobile</th>
@@ -685,7 +780,6 @@ const ResultList = () => {
                 <tbody>
                   {studentList.map((student, idx) => (
                     <tr key={idx} className="border hover:bg-gray-50">
-                      <td className="px-4 py-3 border">{idx + 1}</td>
                       <td className="px-4 py-3 border">{student.full_name}</td>
                       <td className="px-4 py-3 border">{student.email}</td>
                       <td className="px-4 py-3 border">{student.mobile}</td>
@@ -704,34 +798,26 @@ const ResultList = () => {
               </table>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                No attendance data found
+                <i className="fa fa-users text-4xl text-gray-300 mb-3"></i>
+                <h4 className="text-lg font-semibold text-gray-600 mb-2">No Attendance Data</h4>
+                <p>No attendance information found for this exam</p>
               </div>
             )}
           </div>
         )}
 
         {/* Results Table */}
-        {!showAttendance && !reScheduleExamForm && !uploadCertificateForm && !loading && (
+        {!showAttendence && !reScheduleExamForm && !uploadCertificateForm && !loading && (
           <div className="overflow-x-auto">
             <h3 className="text-lg font-semibold mb-3">
               {currentView === "passed" ? "Passed Students" :
                currentView === "failed" ? "Failed Students" : "Exam Results"}
             </h3>
             
-            {/* Debug Info - Remove this in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                <strong>Debug Info:</strong> Found {resultList.length} results, 
-                Current View: {currentView}, 
-                Loading: {loading.toString()}
-              </div>
-            )}
-            
             {resultList.length > 0 ? (
               <table className="w-full text-sm text-center border-collapse">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="px-4 py-3 border">S.No</th>
                     <th className="px-4 py-3 border">Students Name</th>
                     <th className="px-4 py-3 border">Total Answered</th>
                     <th className="px-4 py-3 border">Correct Answers</th>
@@ -740,21 +826,20 @@ const ResultList = () => {
                     <th className="px-4 py-3 border">Marks Obtained</th>
                     <th className="px-4 py-3 border">Grade Obtained</th>
                     <th className="px-4 py-3 border">Result</th>
-                    {currentView === "all" && <th className="px-4 py-3 border">Attendance</th>}
+                    {!viewCertificate && <th className="px-4 py-3 border">Attendence</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {resultList.map((result, idx) => (
                     <tr key={result._id || idx} className="border hover:bg-gray-50">
-                      <td className="px-4 py-3 border">{idx + 1}</td>
                       <td className="px-4 py-3 border font-medium">
-                        {result.Student_name || result.full_name || "N/A"}
+                        {result.Student_name ? result.Student_name : result.full_name}
                       </td>
-                      <td className="px-4 py-3 border">{result.Answered || "0"}</td>
-                      <td className="px-4 py-3 border text-green-600 font-medium">{result.CorrectAnswers || "0"}</td>
-                      <td className="px-4 py-3 border text-red-600 font-medium">{result.IncorrectAnswers || "0"}</td>
-                      <td className="px-4 py-3 border">{result.TotalMarks || "0"}</td>
-                      <td className="px-4 py-3 border font-semibold">{result.StudentMarks || "0"}</td>
+                      <td className="px-4 py-3 border">{result.Answered ? result.Answered : "0"}</td>
+                      <td className="px-4 py-3 border text-green-600 font-medium">{result.CorrectAnswers ? result.CorrectAnswers : "0"}</td>
+                      <td className="px-4 py-3 border text-red-600 font-medium">{result.IncorrectAnswers ? result.IncorrectAnswers : "0"}</td>
+                      <td className="px-4 py-3 border">{result.TotalMarks ? result.TotalMarks : "0"}</td>
+                      <td className="px-4 py-3 border font-semibold">{result.StudentMarks ? result.StudentMarks : "0"}</td>
                       <td className="px-4 py-3 border">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           result.grade === "A+" || result.grade === "A" ? "bg-green-100 text-green-700" :
@@ -763,22 +848,28 @@ const ResultList = () => {
                           result.grade === "D" || result.grade === "F" ? "bg-orange-100 text-orange-700" :
                           "bg-gray-100 text-gray-700"
                         }`}>
-                          {result.grade || "-"}
+                          {result.grade ? result.grade : "-"}
                         </span>
                       </td>
                       <td className="px-4 py-3 border">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          result.Result === "Pass" 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-red-100 text-red-700"
-                        }`}>
-                          {result.Result || "Fail"}
-                        </span>
+                        {result.Result === "Pass" ? (
+                          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                            {result.Result}
+                          </span>
+                        ) : result.Result === "Fail" ? (
+                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">
+                            {result.Result}
+                          </span>
+                        ) : (
+                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">
+                            Fail
+                          </span>
+                        )}
                       </td>
-                      {currentView === "all" && (
+                      {!viewCertificate && (
                         <td className="px-4 py-3 border">
-                          <span className={`text-xs font-medium ${result.Absent ? "text-red-600" : "text-green-600"}`}>
-                            {result.Absent ? "Absent" : "Present"}
+                          <span className={`text-xs font-medium ${!result.Absent ? "text-green-600" : "text-red-600"}`}>
+                            {!result.Absent ? "Present" : "Absent"}
                           </span>
                         </td>
                       )}
@@ -801,11 +892,11 @@ const ResultList = () => {
         )}
 
         {/* Statistics Summary */}
-        {!loading && !showAttendance && !reScheduleExamForm && !uploadCertificateForm && resultList.length > 0 && (
+        {!loading && !showAttendence && !reScheduleExamForm && !uploadCertificateForm && resultList.length > 0 && (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg text-center">
               <h4 className="text-lg font-semibold text-blue-800">Total Students</h4>
-              <p className="text-2xl font-bold text-blue-600">{totalCount}</p>
+              <p className="text-2xl font-bold text-blue-600">{count}</p>
             </div>
             <div className="bg-indigo-50 p-4 rounded-lg text-center">
               <h4 className="text-lg font-semibold text-indigo-800">Results Processed</h4>
@@ -838,7 +929,7 @@ const ResultList = () => {
         )}
 
         {/* No Data Message */}
-        {!loading && !showAttendance && !reScheduleExamForm && !uploadCertificateForm && resultList.length === 0 && (
+        {!loading && !showAttendence && !reScheduleExamForm && !uploadCertificateForm && resultList.length === 0 && !error && (
           <div className="text-center py-12">
             <i className="fa fa-clipboard-list text-6xl text-gray-300 mb-4"></i>
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No Data Available</h3>

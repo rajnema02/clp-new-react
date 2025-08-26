@@ -62,7 +62,7 @@ const ProtectedRoute = ({ children, adminOnly = false, userOnly = false }) => {
   }
 
   if (!user) {
-    return <Navigate to={adminOnly ? "/admin-login" : "/"} replace />;
+    return <Navigate to={adminOnly ? "/admin-login" : "/login"} replace />;
   }
 
   if (adminOnly && !isAdmin) {
@@ -94,7 +94,7 @@ export default function App() {
         <Routes>
           {/* Public Auth Routes */}
           <Route path="/login" element={<AuthRedirect />} />
-          <Route path="/admin-login" element={<AuthRedirect admin />} />
+          <Route path="/admin" element={<AuthRedirect admin />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-signup" element={<AdminSignup />} />
 
@@ -159,7 +159,7 @@ export default function App() {
             <Route path="/student-question-paper/:id" element={<QuestionsPaper/>} />
 
           {/* Fallback Route */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<LogIn />} />
         </Routes>
       </Router>
     </AuthProvider>
